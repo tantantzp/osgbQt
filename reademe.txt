@@ -1,0 +1,1 @@
+VS2013项目设置注意：属性-c/c++-预处理器-预处理器定义 OSGBULLET_STATIC
