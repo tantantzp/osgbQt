@@ -2,6 +2,7 @@
 #define PICKMODELHANDLER_H
 
 #include "Utils.h"
+#include "osgbUtil.h"
 
 
 class PickModelHandler : public osgGA::GUIEventHandler
@@ -13,6 +14,7 @@ public:
 		transStep = 1.0f;
 		root->addChild(getOrCreateSelectionBox());
 		_root = root;
+		addGround();
 	}
 	Node *getOrCreateSelectionBox();
 	void  PickModelHandler::detectCollision(bool& colState, btCollisionWorld* cw);
@@ -26,7 +28,7 @@ public:
 		objMap.insert(make_pair(transObj, collisionObj));
 	}
 
-
+	void addGround();
 
 protected:
 	void translateOneObj(MatrixTransform* model, MatrixTransform* box, btCollisionObject* collisionObj, Vec3d transVec);
@@ -34,6 +36,10 @@ protected:
 	void scaleOneObj(MatrixTransform* model, MatrixTransform* box, btCollisionObject* collisionObj, Vec3d scaleVec);
 	void handleKeyEvent(const osgGA::GUIEventAdapter &ea, osgGA::GUIActionAdapter &aa);
 	void handlePickEvent(const osgGA::GUIEventAdapter &ea, osgGA::GUIActionAdapter &aa);
+
+
+
+
 protected:
 	ref_ptr<MatrixTransform> _selectionBox;		// bounding box of the selected model;
 	ref_ptr<MatrixTransform> _lastModel;
@@ -47,6 +53,80 @@ protected:
 	bool _colState;
 	float transStep;
 };
+
+void PickModelHandler::addGround()
+{
+	/* BEGIN: Create environment boxes */
+	float xDim(300.);
+	float yDim(100.);
+	float zDim(300.);
+	float thick(.1);
+	osg::MatrixTransform* shakeBox = new osg::MatrixTransform;
+	btCompoundShape* cs = new btCompoundShape;
+	{ // floor -Z (far back of the shake cube)
+		osg::Vec3 halfLengths(xDim*.5, yDim*.5, thick*.5);
+		osg::Vec3 center(0., 0., zDim*.5);
+		shakeBox->addChild(osgBox(center, halfLengths));
+		btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
+		btTransform trans; trans.setIdentity();
+		trans.setOrigin(osgbCollision::asBtVector3(center));
+		cs->addChildShape(trans, box);
+	}
+	{ // top +Z (invisible, to allow user to see through; no OSG analogue
+		osg::Vec3 halfLengths(xDim*.5, yDim*.5, thick*.5);
+		osg::Vec3 center(0., 0., -zDim*.5);
+		shakeBox->addChild( osgBox( center, halfLengths ) );
+		btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
+		btTransform trans; trans.setIdentity();
+		trans.setOrigin(osgbCollision::asBtVector3(center));
+		cs->addChildShape(trans, box);
+	}
+	{ // left -X
+		osg::Vec3 halfLengths(thick*.5, yDim*.5, zDim*.5);
+		osg::Vec3 center(-xDim*.5, 0., 0.);
+		shakeBox->addChild(osgBox(center, halfLengths));
+		btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
+		btTransform trans; trans.setIdentity();
+		trans.setOrigin(osgbCollision::asBtVector3(center));
+		cs->addChildShape(trans, box);
+	}
+	{ // right +X
+		osg::Vec3 halfLengths(thick*.5, yDim*.5, zDim*.5);
+		osg::Vec3 center(xDim*.5, 0., 0.);
+		shakeBox->addChild(osgBox(center, halfLengths));
+		btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
+		btTransform trans; trans.setIdentity();
+		trans.setOrigin(osgbCollision::asBtVector3(center));
+		cs->addChildShape(trans, box);
+	}
+	{ // bottom of window -Y
+		osg::Vec3 halfLengths(xDim*.5, thick*.5, zDim*.5);
+		osg::Vec3 center(0., -yDim*.5, 0.);
+		//shakeBox->addChild(osgBox(center, halfLengths));
+		btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
+		btTransform trans; trans.setIdentity();
+		trans.setOrigin(osgbCollision::asBtVector3(center));
+		cs->addChildShape(trans, box);
+	}
+	{ // bottom of window -Y
+		osg::Vec3 halfLengths(xDim*.5, thick*.5, zDim*.5);
+		osg::Vec3 center(0., yDim*.5, 0.);
+		shakeBox->addChild(osgBox(center, halfLengths));
+		btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
+		btTransform trans; trans.setIdentity();
+		trans.setOrigin(osgbCollision::asBtVector3(center));
+		cs->addChildShape(trans, box);
+	}
+	/* END: Create environment boxes */
+	shakeBox->setNodeMask(0x1);  //avoid choosing the Node Mask
+	_root->addChild(shakeBox);
+	btCollisionObject* btground = new btCollisionObject;
+	btground->setCollisionShape(cs);
+	btground->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
+	//btground->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
+	//btground->setWorldTransform(osgbCollision::asBtTransform(transMatrix1));
+	_collisionWorld->addCollisionObject(btground);
+}
 
 Node *PickModelHandler::getOrCreateSelectionBox()
 {
@@ -452,13 +532,12 @@ void PickModelHandler::handleKeyEvent(const osgGA::GUIEventAdapter &ea, osgGA::G
 	   //move along y(up/down)
 		case 'w':
 		case 'W':
-			transVec = Vec3d(0.0f, transStep, 0.0f);
-			
+			transVec = Vec3d(0.0f, -transStep, 0.0f);
 			isTranslate = true;
 			break;
 		case 's':
 		case 'S':
-			transVec = Vec3d(0.0f, -transStep, 0.0f);
+			transVec = Vec3d(0.0f, transStep, 0.0f);
 			isTranslate = true;
 			break;
 		case 'x':

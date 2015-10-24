@@ -7,8 +7,6 @@
 
 void  createScene(Group* root, btCollisionWorld* cw, PickModelHandler *picker)
 {
-	
-
 	// Create a static box
 	// osg::Geode* geode = new osg::Geode;
 	// geode->addDrawable( osgwTools::makeBox( osg::Vec3( .5, .5, .5 ) ) );
@@ -79,70 +77,7 @@ public:
 		
 		createScene(_root, _collisionWorld, _picker);		
 
-		///* BEGIN: Create environment boxes */
-		//float xDim(10.);
-		//float yDim(10.);
-		//float zDim(10.);
-		//float thick(.1);
-		//osg::MatrixTransform* shakeBox = new osg::MatrixTransform;
-		//btCompoundShape* cs = new btCompoundShape;
-		//{ // floor -Z (far back of the shake cube)
-		//	osg::Vec3 halfLengths(xDim*.5, yDim*.5, thick*.5);
-		//	osg::Vec3 center(0., 0., zDim*.5);
-		//	shakeBox->addChild(osgBox(center, halfLengths));
-		//	btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
-		//	btTransform trans; trans.setIdentity();
-		//	trans.setOrigin(osgbCollision::asBtVector3(center));
-		//	cs->addChildShape(trans, box);
-		//}
-		//{ // top +Z (invisible, to allow user to see through; no OSG analogue
-		//	osg::Vec3 halfLengths(xDim*.5, yDim*.5, thick*.5);
-		//	osg::Vec3 center(0., 0., -zDim*.5);
-		//	//shakeBox->addChild( osgBox( center, halfLengths ) );
-		//	btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
-		//	btTransform trans; trans.setIdentity();
-		//	trans.setOrigin(osgbCollision::asBtVector3(center));
-		//	cs->addChildShape(trans, box);
-		//}
-		//{ // left -X
-		//	osg::Vec3 halfLengths(thick*.5, yDim*.5, zDim*.5);
-		//	osg::Vec3 center(-xDim*.5, 0., 0.);
-		//	shakeBox->addChild(osgBox(center, halfLengths));
-		//	btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
-		//	btTransform trans; trans.setIdentity();
-		//	trans.setOrigin(osgbCollision::asBtVector3(center));
-		//	cs->addChildShape(trans, box);
-		//}
-		//{ // right +X
-		//	osg::Vec3 halfLengths(thick*.5, yDim*.5, zDim*.5);
-		//	osg::Vec3 center(xDim*.5, 0., 0.);
-		//	shakeBox->addChild(osgBox(center, halfLengths));
-		//	btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
-		//	btTransform trans; trans.setIdentity();
-		//	trans.setOrigin(osgbCollision::asBtVector3(center));
-		//	cs->addChildShape(trans, box);
-		//}
-		//{ // bottom of window -Y
-		//	osg::Vec3 halfLengths(xDim*.5, thick*.5, zDim*.5);
-		//	osg::Vec3 center(0., -yDim*.5, 0.);
-		//	shakeBox->addChild(osgBox(center, halfLengths));
-		//	btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
-		//	btTransform trans; trans.setIdentity();
-		//	trans.setOrigin(osgbCollision::asBtVector3(center));
-		//	cs->addChildShape(trans, box);
-		//}
-		//{ // bottom of window -Y
-		//	osg::Vec3 halfLengths(xDim*.5, thick*.5, zDim*.5);
-		//	osg::Vec3 center(0., yDim*.5, 0.);
-		//	shakeBox->addChild(osgBox(center, halfLengths));
-		//	btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
-		//	btTransform trans; trans.setIdentity();
-		//	trans.setOrigin(osgbCollision::asBtVector3(center));
-		//	cs->addChildShape(trans, box);
-		//}
-		///* END: Create environment boxes */
 
-		//_root->addChild(shakeBox);
 
 		_viewer.setSceneData(_root);		
 	
