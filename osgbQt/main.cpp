@@ -1,36 +1,13 @@
 #include "Utils.h"
 #include "PickModelHandler.h"
+//#include "ShakeManipulator.h"
 #include "osgbUtil.h"
 
 
-osg::Camera* createCamera(int x, int y, int w, int h)
-{
-	osg::DisplaySettings* ds =
-		osg::DisplaySettings::instance().get();
-	osg::ref_ptr<osg::GraphicsContext::Traits> traits =
-		new osg::GraphicsContext::Traits;
-	traits->windowDecoration = false;
-	traits->x = x;
-	traits->y = y;
-	traits->width = w;
-	traits->height = h;
-	traits->doubleBuffer = true;
-	osg::ref_ptr<osg::Camera> camera = new osg::Camera;
-	camera->setGraphicsContext(
-		new osgQt::GraphicsWindowQt(traits.get()));
-	camera->setClearColor(osg::Vec4(0.2, 0.2, 0.6, 1.0));
-	camera->setViewport(new osg::Viewport(
-		0, 0, traits->width, traits->height));
-	camera->setProjectionMatrixAsPerspective(
-		30.0f, static_cast<double>(traits->width) /
-		static_cast<double>(traits->height), 1.0f, 10000.0f);
-	return camera.release();
-}
 
-
-osg::Group* createScene(btCollisionWorld* cw, PickModelHandler *picker)
+void  createScene(Group* root, btCollisionWorld* cw, PickModelHandler *picker)
 {
-	osg::ref_ptr< osg::Group > root = new osg::Group;
+	
 
 	// Create a static box
 	// osg::Geode* geode = new osg::Geode;
@@ -78,33 +55,14 @@ osg::Group* createScene(btCollisionWorld* cw, PickModelHandler *picker)
 	// mm->setCollisionObject( btBoxObject );
 	//mm->setMatrixTransform( trans2.get() );
 
-	return(root.release());
 }
 
 class MyViewerWidget : public QWidget
 {
 public:
-	MyViewerWidget(osg::Camera* camera) : QWidget()
+	MyViewerWidget() : QWidget()
 	{
-		_collisionWorld = initCollision();
-
-		_picker = new PickModelHandler;	
-		_picker->setCollisionWorld(_collisionWorld);
-
-		_root = createScene(_collisionWorld, _picker);
-		_root->addChild(_picker->getOrCreateSelectionBox());
-
-		_viewer.setCamera(camera);
-		_viewer.setSceneData(_root);
-		_viewer.addEventHandler(_picker);
-		_viewer.setCameraManipulator(new osgGA::TrackballManipulator());
-		//_viewer.setUpViewInWindow(10, 30, 800, 600);
-
-
-		// Use single thread here to avoid known issues under Linux
-		_viewer.setThreadingModel(osgViewer::Viewer::SingleThreaded);
-		
-		osgQt::GraphicsWindowQt* gw = dynamic_cast<osgQt::GraphicsWindowQt*>(camera->getGraphicsContext());
+		osgQt::GraphicsWindowQt* gw = createGraphicsWindow(0, 0, 500, 500);
 		if (gw)
 		{
 			cout << "Valid GraphicsWindowQt" << endl;
@@ -113,75 +71,160 @@ public:
 			setLayout(layout);
 		}
 
+		_collisionWorld = initCollision();
+		_root = new osg::Group;
+		cout << "before picker" << endl;
+		_picker = new PickModelHandler(_collisionWorld, _root);
+		cout << "after picker" << endl;
+		
+		createScene(_root, _collisionWorld, _picker);		
+
+		///* BEGIN: Create environment boxes */
+		//float xDim(10.);
+		//float yDim(10.);
+		//float zDim(10.);
+		//float thick(.1);
+		//osg::MatrixTransform* shakeBox = new osg::MatrixTransform;
+		//btCompoundShape* cs = new btCompoundShape;
+		//{ // floor -Z (far back of the shake cube)
+		//	osg::Vec3 halfLengths(xDim*.5, yDim*.5, thick*.5);
+		//	osg::Vec3 center(0., 0., zDim*.5);
+		//	shakeBox->addChild(osgBox(center, halfLengths));
+		//	btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
+		//	btTransform trans; trans.setIdentity();
+		//	trans.setOrigin(osgbCollision::asBtVector3(center));
+		//	cs->addChildShape(trans, box);
+		//}
+		//{ // top +Z (invisible, to allow user to see through; no OSG analogue
+		//	osg::Vec3 halfLengths(xDim*.5, yDim*.5, thick*.5);
+		//	osg::Vec3 center(0., 0., -zDim*.5);
+		//	//shakeBox->addChild( osgBox( center, halfLengths ) );
+		//	btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
+		//	btTransform trans; trans.setIdentity();
+		//	trans.setOrigin(osgbCollision::asBtVector3(center));
+		//	cs->addChildShape(trans, box);
+		//}
+		//{ // left -X
+		//	osg::Vec3 halfLengths(thick*.5, yDim*.5, zDim*.5);
+		//	osg::Vec3 center(-xDim*.5, 0., 0.);
+		//	shakeBox->addChild(osgBox(center, halfLengths));
+		//	btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
+		//	btTransform trans; trans.setIdentity();
+		//	trans.setOrigin(osgbCollision::asBtVector3(center));
+		//	cs->addChildShape(trans, box);
+		//}
+		//{ // right +X
+		//	osg::Vec3 halfLengths(thick*.5, yDim*.5, zDim*.5);
+		//	osg::Vec3 center(xDim*.5, 0., 0.);
+		//	shakeBox->addChild(osgBox(center, halfLengths));
+		//	btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
+		//	btTransform trans; trans.setIdentity();
+		//	trans.setOrigin(osgbCollision::asBtVector3(center));
+		//	cs->addChildShape(trans, box);
+		//}
+		//{ // bottom of window -Y
+		//	osg::Vec3 halfLengths(xDim*.5, thick*.5, zDim*.5);
+		//	osg::Vec3 center(0., -yDim*.5, 0.);
+		//	shakeBox->addChild(osgBox(center, halfLengths));
+		//	btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
+		//	btTransform trans; trans.setIdentity();
+		//	trans.setOrigin(osgbCollision::asBtVector3(center));
+		//	cs->addChildShape(trans, box);
+		//}
+		//{ // bottom of window -Y
+		//	osg::Vec3 halfLengths(xDim*.5, thick*.5, zDim*.5);
+		//	osg::Vec3 center(0., yDim*.5, 0.);
+		//	shakeBox->addChild(osgBox(center, halfLengths));
+		//	btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
+		//	btTransform trans; trans.setIdentity();
+		//	trans.setOrigin(osgbCollision::asBtVector3(center));
+		//	cs->addChildShape(trans, box);
+		//}
+		///* END: Create environment boxes */
+
+		//_root->addChild(shakeBox);
+
+		_viewer.setSceneData(_root);		
+	
+		//*BEGIN: set camera*/
+		osg::Camera* camera = _viewer.getCamera();
+		const osg::GraphicsContext::Traits* traits = gw->getTraits();
+		camera->setGraphicsContext(gw);
+		camera->setClearColor(osg::Vec4(0.2, 0.2, 0.6, 1.0));
+		camera->setViewport(new osg::Viewport(0, 0, traits->width, traits->height));
+		camera->setProjectionMatrixAsPerspective(40., 1., 1., 50.);
+		//*END: set camera */
+
+
+		_viewer.addEventHandler(_picker);
+		osgGA::TrackballManipulator* tb = new osgGA::TrackballManipulator;
+		tb->setHomePosition(osg::Vec3(0, 0, -150), osg::Vec3(0, 0, -100), osg::Vec3(0, -1, 0));
+		_viewer.setCameraManipulator(tb);
+		
+		// Use single thread here to avoid known issues under Linux
+		_viewer.setThreadingModel(osgViewer::Viewer::SingleThreaded);
+		
 		connect(&_timer, SIGNAL(timeout()), this, SLOT(update()));
-		_timer.start(40);
+		_timer.start(10);
 	}
 	~MyViewerWidget()
 	{
+		
 		delete _collisionWorld;
 		delete _picker;
+	}
+
+	osgQt::GraphicsWindowQt* createGraphicsWindow(int x, int y, int w, int h, const std::string& name = "", bool windowDecoration = false)
+	{
+		osg::DisplaySettings* ds = osg::DisplaySettings::instance().get();
+		osg::ref_ptr<osg::GraphicsContext::Traits> traits = new osg::GraphicsContext::Traits;
+		traits->windowName = name;
+		traits->windowDecoration = windowDecoration;
+		traits->x = x;
+		traits->y = y;
+		traits->width = w;
+		traits->height = h;
+		traits->doubleBuffer = true;
+		traits->alpha = ds->getMinimumNumAlphaBits();
+		traits->stencil = ds->getMinimumNumStencilBits();
+		traits->sampleBuffers = ds->getMultiSamples();
+		traits->samples = ds->getNumMultiSamples();
+
+		return new osgQt::GraphicsWindowQt(traits.get());
 	}
 
 protected:
 	virtual void paintEvent(QPaintEvent* event)
 	{
+		//const double currSimTime = _viewer.getFrameStamp()->getSimulationTime();
+		//double elapsed(currSimTime - prevSimTime);
+		//if (_viewer.getFrameStamp()->getFrameNumber() < 3)
+		//	elapsed = 1. / 180.;
+		////osg::notify( osg::ALWAYS ) << elapsed / 3. << ", " << 1./180. << std::endl;
+		//_bulletWorld->stepSimulation(elapsed, 3, elapsed / 3.);
+		//prevSimTime = currSimTime;
+		
 		_viewer.frame();
 	}
 
 	osgViewer::Viewer _viewer;
 	QTimer _timer;
 	btCollisionWorld* _collisionWorld;
+	//btDynamicsWorld* _bulletWorld;
 	PickModelHandler* _picker;
 	Group* _root;
+
+	double prevSimTime = 0.;
 };
 
-
-class ViewerWidget : public QWidget
-{
-public:
-	ViewerWidget(osg::Camera* camera, osg::Node* scene) : QWidget()
-	{
-		_viewer.setCamera(camera);
-		_viewer.setSceneData(scene);
-		_viewer.addEventHandler(new osgViewer::StatsHandler);
-		_viewer.setCameraManipulator(new osgGA::TrackballManipulator);
-		// Use single thread here to avoid known issues under Linux
-		_viewer.setThreadingModel(osgViewer::Viewer::SingleThreaded);
-		
-		osgQt::GraphicsWindowQt* gw = dynamic_cast<osgQt::GraphicsWindowQt*>(camera->getGraphicsContext());
-		if (gw)
-		{
-			cout << "Valid GraphicsWindowQt" << endl;
-			QVBoxLayout* layout = new QVBoxLayout;
-			layout->addWidget(gw->getGLWidget());
-			setLayout(layout);
-		}
-
-		connect(&_timer, SIGNAL(timeout()), this, SLOT(update()));
-		_timer.start(40);
-	}
-
-
-protected:
-	virtual void paintEvent(QPaintEvent* event)
-	{
-		_viewer.frame();
-
-	}
-
-	osgViewer::Viewer _viewer;
-	QTimer _timer;
-};
 
 int main(int argc, char** argv)
 {
 	QApplication app(argc, argv);
-	osg::Camera* camera = createCamera(50, 50, 640, 480);
 
-	MyViewerWidget* widget = new MyViewerWidget(camera);
+   
+    MyViewerWidget* widget = new MyViewerWidget();
 
-    //osg::Node* scene = osgDB::readNodeFile("cow.osg");
-	//ViewerWidget* widget = new ViewerWidget(camera, scene);
 	widget->setGeometry(100, 100, 800, 600);
 	widget->show();
 	return app.exec();

@@ -49,8 +49,15 @@
 
 #include <btBulletCollisionCommon.h>
 #include <osgbCollision/CollisionShapes.h>
+#include <osgbCollision/RefBulletObject.h>
+#include <osgbCollision/GLDebugDrawer.h>
 #include <osgbCollision/Utils.h>
+#include <osgbDynamics/MotionState.h>
+#include <osgbDynamics/RigidBody.h>
+#include <osgbDynamics/GroundPlane.h>
+#include <osgbInteraction/DragHandler.h>
 
+#include <btBulletDynamicsCommon.h>
 
 #include <QtCore/QtCore>
 #include <QtGui/QtGui>
@@ -58,6 +65,8 @@
 #include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QApplication>
 #include <osgQt/GraphicsWindowQt>
+
+
 
 using namespace std;
 using namespace osg;

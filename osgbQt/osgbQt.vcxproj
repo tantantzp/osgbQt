@@ -89,6 +89,7 @@
       </PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="main2.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="osgbqt.ui">
@@ -107,6 +108,7 @@
     <ClInclude Include="GeneratedFiles\ui_osgbqt.h" />
     <ClInclude Include="osgbUtil.h" />
     <ClInclude Include="PickModelHandler.h" />
+    <ClInclude Include="ShakeManipulator.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>
   <ItemGroup>
