@@ -5,6 +5,8 @@
 #include <cstdlib>
 #include <map>
 #include <string>
+#include <vector>
+#include <set>
 
 #include <GL/glut.h>
 

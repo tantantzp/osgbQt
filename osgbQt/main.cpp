@@ -78,18 +78,18 @@ public:
 		float widthX = 250., widthZ = 250., heightY = 100.;
 		_picker->addGround(widthX, widthZ, heightY);
 
-		for (int i = 0; i < 3; i++) {
+		for (int i = 0; i < 2; i++) {
 			string strobj1 = "D:/ProgramLib/objs/chair/chair_17.skp/chair_17.obj";
 			Vec3d pos1(-40., 0., 0.);
 			_picker->addOneObj(strobj1, pos1);
 		}
-		for (int i = 0; i < 3; i++) {
+		for (int i = 0; i < 2; i++) {
 			string strobj2 = "D:/ProgramLib/objs/chair/chair_8.skp/chair_8.obj";
 			Vec3d pos2(40., 0., 0.);
 			_picker->addOneObj(strobj2, pos2);
 		}
 
-		for (int i = 0; i < 2; i++) {
+		for (int i = 0; i < 1; i++) {
 			string strobj = "D:/ProgramLib/objs/desk/bedroom_143/11.obj";
 			Vec3d pos(0., 0., 80.);
 			_picker->addOneObj(strobj, pos);

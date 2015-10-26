@@ -8,26 +8,31 @@
 class PickModelHandler : public osgGA::GUIEventHandler
 {
 public:
-	PickModelHandler(btCollisionWorld* collisionWorld, Group* root, osgViewer::Viewer* view) : _selectionBox(0), _lastModel(0), _selectCollisionObj(0) {
+	PickModelHandler(btCollisionWorld* collisionWorld, Group* root, osgViewer::Viewer* view) {
+		_selectionBoxVec.clear();
+		_lastModelVec.clear();
+		_selectCollisionObjVec.clear();
 		setCollisionWorld(collisionWorld);
 		_objMap.clear();
-
-		root->addChild(getOrCreateSelectionBox());
 		_root = root;
 		_view = view;
+
+		_selectNum = 0;
+		getOrCreateSelectionBox(_selectNum);
+
 		_hasGround = false;
-		_transStep = 3.0f;
+		_transStep = 10.0f;
 
 		_groundWidthX = 0;
 		_groundWidthZ = 0;
 		_groundHeightY = 0;
 	}
-	Node *getOrCreateSelectionBox();
+	MatrixTransform *getOrCreateSelectionBox(unsigned int index);
 	void  PickModelHandler::detectCollision(bool& colState, btCollisionWorld* cw);
 	virtual bool handle(const osgGA::GUIEventAdapter &, osgGA::GUIActionAdapter &);
 
-	void setCollisionObject(btCollisionObject* co) { _selectCollisionObj = co; }
-	void setMatrixTransform(osg::MatrixTransform* sBox) { _selectionBox = sBox; }
+	void setCollisionObject(btCollisionObject* co, unsigned int index) { _selectCollisionObjVec[index] = co; }
+	//void setMatrixTransform(osg::MatrixTransform* sBox) { _selectionBox = sBox; }
 	void setCollisionWorld(btCollisionWorld* btcw) { _collisionWorld = btcw; }
 	void insertObjPair(MatrixTransform* transObj, btCollisionObject* collisionObj)
 	{
@@ -37,8 +42,10 @@ public:
 	//handle scene
 	void addGround(float widthX, float widthZ, float heightY);
 	bool addOneObj(string objPath, Vec3d initPos);
-	bool addOneObj(MatrixTransform * matrixTrans);
+	MatrixTransform* duplicateOneObj(MatrixTransform * matrixTrans);
 	bool doAddObj(MatrixTransform * matrixTrans);
+	void chooseOneMatrixTransform(MatrixTransform* lastmodel);
+
 
 protected:
 	bool translateOneObj(MatrixTransform* model, MatrixTransform* box, btCollisionObject* collisionObj, Vec3d transVec);
@@ -46,18 +53,18 @@ protected:
 	bool scaleOneObj(MatrixTransform* model, MatrixTransform* box, btCollisionObject* collisionObj, Vec3d scaleVec);
 	void handleKeyEvent(const osgGA::GUIEventAdapter &ea, osgGA::GUIActionAdapter &aa);
 	void handlePickEvent(float clickX, float clickY);//const osgGA::GUIEventAdapter &ea, osgGA::GUIActionAdapter &aa);
-	bool deleteOneObj(MatrixTransform* model, MatrixTransform* box, btCollisionObject* collisionObj);
-	bool duplicateOneObj(MatrixTransform* model, MatrixTransform* box, btCollisionObject* collisionObj);
+	//bool deleteOneObj(MatrixTransform* model, MatrixTransform* box, btCollisionObject* collisionObj);
+	bool deleteOneObj(unsigned int index);
+	//bool duplicateOneObj(MatrixTransform* model, MatrixTransform* box, btCollisionObject* collisionObj);
 
 
 protected:
-	ref_ptr<MatrixTransform> _selectionBox;		// bounding box of the selected model;
-	ref_ptr<MatrixTransform> _lastModel;
-	btCollisionObject*  _selectCollisionObj;
+	vector< ref_ptr<MatrixTransform> > _selectionBoxVec;		// bounding box of the selected model;
+	vector< MatrixTransform* > _lastModelVec;
+	vector< btCollisionObject* > _selectCollisionObjVec;
 	btCollisionWorld* _collisionWorld;
 	Group* _root;
 	osgViewer::Viewer* _view;
-
 
 	map<MatrixTransform *, btCollisionObject *> _objMap;
 
@@ -66,6 +73,7 @@ protected:
 	bool _colState;
 	float _transStep;
 	bool _hasGround;
+	unsigned int _selectNum;
 };
 
 bool PickModelHandler::handle(const osgGA::GUIEventAdapter &ea, osgGA::GUIActionAdapter &aa)
@@ -79,7 +87,7 @@ bool PickModelHandler::handle(const osgGA::GUIEventAdapter &ea, osgGA::GUIAction
 
 		handlePickEvent(clickX, clickY);
 	}
-	else if (ea.getEventType() == GUIEventAdapter::KEYDOWN && _lastModel != NULL && _selectionBox != NULL)
+	else if (ea.getEventType() == GUIEventAdapter::KEYDOWN && _selectNum > 0 )//_lastModel != NULL && _selectionBox != NULL)
 	{
 		handleKeyEvent(ea, aa);
 	}
@@ -89,10 +97,12 @@ bool PickModelHandler::handle(const osgGA::GUIEventAdapter &ea, osgGA::GUIAction
 
 bool  PickModelHandler::doAddObj(MatrixTransform * trans)
 {
+	cout << "do add obj" << endl;
 	_root->addChild(trans);
 	btCollisionObject* btBoxObject = new btCollisionObject;
 	Node* model = trans->getChild(0);
 	Matrix transMatrix = trans->getMatrix();
+	//btBoxObject->setCollisionShape(osgbCollision::btConvexTriMeshCollisionShapeFromOSG(model));
 	btBoxObject->setCollisionShape(osgbCollision::btConvexHullCollisionShapeFromOSG(model));
 	//btBoxObject1->setCollisionShape(osgbCollision::btBoxCollisionShapeFromOSG(model1.get()));
 
@@ -138,7 +148,6 @@ bool  PickModelHandler::doAddObj(MatrixTransform * trans)
 	}
 	else {
 
-
 		return true;
 	}
 
@@ -147,16 +156,29 @@ bool  PickModelHandler::doAddObj(MatrixTransform * trans)
 
 bool PickModelHandler::addOneObj(string objPath, Vec3d initPos){
 	//ref_ptr<Node> model1 = osgDB::readNodeFile("D:/ProgramLib/objs/chair/chair_3.skp/chair_3.obj");  //;cow.osg");
-	ref_ptr<Node> model = osgDB::readNodeFile(objPath);  
+	ref_ptr<Node> model = osgDB::readNodeFile(objPath); 
+	if (model.get() == NULL) {
+		cout << "read node file:" << objPath << "  failed" << endl;
+		return false;
+
+	}
 	Matrix transMatrix = osg::Matrix::translate(initPos.x(), initPos.y(), initPos.z());
 	ref_ptr<MatrixTransform> trans = new MatrixTransform(transMatrix);
 	trans->addChild(model.get());
 	return doAddObj(trans.get());
 }
 
-bool PickModelHandler::addOneObj(MatrixTransform * matrixTrans) {
-	ref_ptr<MatrixTransform> trans = new MatrixTransform(*matrixTrans, CopyOp::DEEP_COPY_ALL);
-	return doAddObj(trans.get());
+MatrixTransform* PickModelHandler::duplicateOneObj(MatrixTransform * matrixTrans)
+{
+	if (matrixTrans == NULL) {
+		return NULL;
+	}
+	MatrixTransform* trans = new MatrixTransform(*matrixTrans, CopyOp::DEEP_COPY_ALL);
+	bool flag = doAddObj(trans);
+	//chooseOneMatrixTransform(trans.get());
+	if (flag) return trans;
+	else return NULL;
+	
 }
 
 
@@ -175,7 +197,7 @@ void PickModelHandler::addGround(float widthX, float widthZ, float heightY)
 	float xDim(widthX);
 	float yDim(heightY);
 	float zDim(widthZ);
-	float thick(.1);
+	float thick(2);
 	osg::MatrixTransform* shakeBox = new osg::MatrixTransform;
 	btCompoundShape* cs = new btCompoundShape;
 	{ // floor -Z
@@ -245,23 +267,24 @@ void PickModelHandler::addGround(float widthX, float widthZ, float heightY)
 	_hasGround = true;
 }
 
-Node *PickModelHandler::getOrCreateSelectionBox()
+MatrixTransform *PickModelHandler::getOrCreateSelectionBox(unsigned int index)
 {
-	if (!_selectionBox)
-	{
+	if (index >= _selectionBoxVec.size()) {
 		ref_ptr<ShapeDrawable> boxDrawable = new ShapeDrawable(new Box(Vec3(), 1.0f));
 		boxDrawable->setColor(Vec4(1.0f, 0.0f, 0.0f, 0.0f));	// red color
 		ref_ptr<Geode> geode = new Geode;
 		geode->addDrawable(boxDrawable.get());
-		_selectionBox = new MatrixTransform;
-		_selectionBox->setNodeMask(0);		//hide this box
-		_selectionBox->addChild(geode.get());
-		StateSet *ss = _selectionBox->getOrCreateStateSet();
+		MatrixTransform* selectionBox = new MatrixTransform;
+		selectionBox->setNodeMask(0);		//hide this box
+		selectionBox->addChild(geode.get());
+		StateSet *ss = selectionBox->getOrCreateStateSet();
 		ss->setMode(GL_LIGHTING, StateAttribute::OFF);
 		ss->setAttributeAndModes(new PolygonMode(PolygonMode::FRONT_AND_BACK, PolygonMode::LINE));
+		_selectionBoxVec.push_back(selectionBox);
+		_root->addChild(_selectionBoxVec[index].get()); //add selection Box to root
+		return _selectionBoxVec[index].get();
 	}
-
-	return _selectionBox.get();
+	else return _selectionBoxVec[index].get();
 }
 
 void  PickModelHandler::detectCollision(bool& colState, btCollisionWorld* cw)
@@ -309,15 +332,19 @@ void  PickModelHandler::detectCollision(bool& colState, btCollisionWorld* cw)
 	}
 }
 
-bool PickModelHandler::deleteOneObj(MatrixTransform* model, MatrixTransform* box, btCollisionObject* collisionObj) 
+bool PickModelHandler::deleteOneObj(unsigned int index) 
 {
+	MatrixTransform* model = _lastModelVec[index];
+	MatrixTransform* box = _selectionBoxVec[index];
+	btCollisionObject* collisionObj = _selectCollisionObjVec[index];
+
 	if (model != NULL && box != NULL && collisionObj != NULL){
 		_root->removeChild(model);
 		_collisionWorld->removeCollisionObject(collisionObj);
 		
-		_lastModel = NULL;
-		_selectCollisionObj = NULL;
-		_selectionBox->setNodeMask(0); //hide the box
+		_lastModelVec[index] = NULL;
+		_selectCollisionObjVec[index] = NULL;
+		_selectionBoxVec[index]->setNodeMask(0); //hide the box
 
 		//delete model;
 		delete collisionObj;
@@ -330,31 +357,29 @@ bool PickModelHandler::deleteOneObj(MatrixTransform* model, MatrixTransform* box
 	}
 	return false;
 }
-bool PickModelHandler::duplicateOneObj(MatrixTransform* model, MatrixTransform* box, btCollisionObject* collisionObj)
-{
-	if (model != NULL && box != NULL && collisionObj != NULL){
-		
-		
-
-		//delete model;
-		delete collisionObj;
-
-		return true;
-	}
-	else {
-		cout << "duplicate nothing!" << endl;
-		return false;
-	}
-	return false;
-
-
-}
+//bool PickModelHandler::duplicateOneObj(MatrixTransform* model, MatrixTransform* box, btCollisionObject* collisionObj)
+//{
+//	if (model != NULL && box != NULL && collisionObj != NULL){
+//		//delete model;
+//		delete collisionObj;
+//
+//		return true;
+//	}
+//	else {
+//		cout << "duplicate nothing!" << endl;
+//		return false;
+//	}
+//	return false;
+//
+//
+//}
 
 bool PickModelHandler::translateOneObj(MatrixTransform* model, MatrixTransform* box, btCollisionObject* collisionObj, Vec3d transVec)
 {
+	if (model == NULL || collisionObj == NULL ) {
+		return false;
+	}
 	Matrix oriSmatrix, smatrix;
-
-
 	Matrix oriMatrix =  model->getMatrix();
 	if (box != NULL)  oriSmatrix = box->getMatrix();
 	btTransform oriBtTrans = collisionObj->getWorldTransform();
@@ -396,6 +421,9 @@ bool PickModelHandler::translateOneObj(MatrixTransform* model, MatrixTransform* 
 
 bool PickModelHandler::rotateOneObj(MatrixTransform* model, MatrixTransform* box, btCollisionObject* collisionObj, Matrix rotMatrix)
 {
+	if (model == NULL || collisionObj == NULL || box == NULL) {
+		return false;
+	}
 	Matrix oriMatrix = model->getMatrix();
 	Matrix oriSmatrix = box->getMatrix();
 	btTransform oriBtTrans = collisionObj->getWorldTransform();
@@ -452,6 +480,9 @@ bool PickModelHandler::rotateOneObj(MatrixTransform* model, MatrixTransform* box
 }
 bool PickModelHandler::scaleOneObj(MatrixTransform* model, MatrixTransform* box, btCollisionObject* collisionObj, Vec3d scaleVec)
 {
+	if (model == NULL || collisionObj == NULL || box == NULL) {
+		return false;
+	}
 	Matrix oriMatrix = model->getMatrix();
 	Matrix oriSmatrix = box->getMatrix();
 	btTransform oriBtTrans = collisionObj->getWorldTransform();
@@ -514,7 +545,81 @@ bool PickModelHandler::scaleOneObj(MatrixTransform* model, MatrixTransform* box,
 	return false;
 }
 
+void PickModelHandler::chooseOneMatrixTransform(MatrixTransform* lastModel)
+{
+	cout << "choose one matrixTransform" << endl;
+	bool isalreadyChosed = false;
+	for (int i = 0; i < _selectNum; i++) {
+		if (lastModel == _lastModelVec[i]) {
+			cout << "already chosed!" << endl;
+			isalreadyChosed = true;
+			_lastModelVec[i] = NULL;   //lazy delete without changing the selectNum
+			_selectCollisionObjVec[i] = NULL;
+			_selectionBoxVec[i]->setNodeMask(0);
+			break;
+		}
+	}
+	if (isalreadyChosed) return;
 
+	int xmax = INT_MIN, xmin = INT_MAX, ymax INT_MIN, ymin = INT_MAX, zmax INT_MIN, zmin = INT_MAX;
+	bool hasgeoflag = false;
+	Matrix mat;
+	int childNum = lastModel->getNumChildren();
+
+	for (int j = 0; j < childNum; j++) {
+		if (strcmp(lastModel->getChild(j)->className(), "Group") == 0) {
+			Group*  tgroup = dynamic_cast<Group *>(lastModel->getChild(j));
+			int groupChildNum = tgroup->getNumChildren();
+			for (int k = 0; k < groupChildNum; k++) {
+				Node* tmpNode = tgroup->getChild(k);
+				if (strcmp(tmpNode->className(), "Geode") == 0) {
+					Geode*  tgeo = dynamic_cast<Geode *>(tmpNode);
+					int drawNum = tgeo->getNumDrawables();
+					if (drawNum > 0) {
+						BoundingBox tbb = tgeo->getDrawable(0)->getBound();
+						if (tbb.xMax() > xmax) xmax = tbb.xMax();
+						if (tbb.xMin() < xmin) xmin = tbb.xMin();
+						if (tbb.yMax() > ymax) ymax = tbb.yMax();
+						if (tbb.yMin() < ymin) ymin = tbb.yMin();
+						if (tbb.zMax() > zmax) zmax = tbb.zMax();
+						if (tbb.zMin() < zmin) zmin = tbb.zMin();
+						hasgeoflag = true;
+					}
+				}
+			}
+		}
+	}
+
+	if (hasgeoflag)
+		mat = Matrix::scale(xmax - xmin, ymax - ymin, zmax - zmin);
+	else {
+		BoundingSphere tbb = lastModel->getBound();
+		//cout << tbb.radius() << "  " << tbb.radius2() << "  " << tbb.center() << endl;
+		float radius = tbb.radius() * 0.6;
+		mat = Matrix::scale(2 * radius, 2 * radius, 2 * radius);
+	}
+
+	cout << "push back to vector:  " << _selectNum << endl;
+	_lastModelVec.push_back(lastModel);
+	_selectCollisionObjVec.push_back(_objMap[lastModel]);
+	mat *= lastModel->getMatrix();
+
+	if (_selectNum >= _selectionBoxVec.size()) {
+		MatrixTransform * tbox = getOrCreateSelectionBox(_selectNum);
+		tbox->setNodeMask(0x1);
+		tbox->setMatrix(mat);
+	}
+	else {
+		_selectionBoxVec[_selectNum]->setMatrix(mat);
+		_selectionBoxVec[_selectNum]->setNodeMask(0x1);
+	}
+	cout << "_selectNum: " << _selectNum << endl;
+	_selectNum++; //increment the selected obj number
+	//for (int i = _selectNum; i < _selectionBoxVec.size(); i++) {
+	//	_selectionBoxVec[i]->setNodeMask(0); //hide  the extra boxes
+	//}
+	return;
+}
 
 void  PickModelHandler::handlePickEvent(float clickX, float clickY )//const osgGA::GUIEventAdapter &ea, osgGA::GUIActionAdapter &aa)
 {
@@ -535,94 +640,47 @@ void  PickModelHandler::handlePickEvent(float clickX, float clickY )//const osgG
 		{
 			const osgUtil::LineSegmentIntersector::Intersection &result = *(intersector->getIntersections().begin());
 			BoundingBox bb = result.drawable->getBound();
-			//Vec3 worldCenter = bb.center() * computeLocalToWorld(result.nodePath);
-
-			_selectionBox->setNodeMask(0x1);  //avoid choosing the Node Mask
 			Matrix mat = Matrix::scale(bb.xMax() - bb.xMin(), bb.yMax() - bb.yMin(), bb.zMax() - bb.zMin())/* * Matrix::translate(worldCenter)*/;
-			//_selectionBox->setMatrix(mat);
 
 			// _lastModel
 			const NodePath &np = result.nodePath;	//NodePath: Group(root)-->MatrixTransform(trans)-->Group(?)-->Geode(model)
 			int nSize = np.size();
 
 			bool flag = false;
+			MatrixTransform * lastModel;
+
 			for (int i = nSize - 1; i >= 0; i--)
 			{
 				cout << np[i]->className() << endl;
-
-				int xmax = INT_MIN, xmin = INT_MAX, ymax INT_MIN, ymin = INT_MAX, zmax INT_MIN, zmin = INT_MAX;
-				bool hasgeoflag = false;
 				if (strcmp(np[i]->className(), "MatrixTransform") == 0)
 				{
-					_lastModel = dynamic_cast<MatrixTransform *>(np[i]);
-					int childNum = _lastModel->getNumChildren();
-
-
-					for (int j = 0; j < childNum; j++) {
-						if (strcmp(_lastModel->getChild(j)->className(), "Group") == 0) {
-							Group*  tgroup = dynamic_cast<Group *>(_lastModel->getChild(j));
-							int groupChildNum = tgroup->getNumChildren();
-							for (int k = 0; k < groupChildNum; k++) {
-								Node* tmpNode = tgroup->getChild(k);
-								if (strcmp(tmpNode->className(), "Geode") == 0) {
-									Geode*  tgeo = dynamic_cast<Geode *>(tmpNode);
-									int drawNum = tgeo->getNumDrawables();
-									if (drawNum > 0) {
-										BoundingBox tbb = tgeo->getDrawable(0)->getBound();
-										if (tbb.xMax() > xmax) xmax = tbb.xMax();
-										if (tbb.xMin() < xmin) xmin = tbb.xMin();
-										if (tbb.yMax() > ymax) ymax = tbb.yMax();
-										if (tbb.yMin() < ymin) ymin = tbb.yMin();
-										if (tbb.zMax() > zmax) zmax = tbb.zMax();
-										if (tbb.zMin() < zmin) zmin = tbb.zMin();
-										hasgeoflag = true;
-									}
-								}
-							}
-						}
-					}
-
-					cout << "hasgeoflag:  " << flag << endl;
-					if (hasgeoflag)
-						mat = Matrix::scale(xmax - xmin, ymax - ymin, zmax - zmin);
-					else {
-						BoundingSphere tbb = _lastModel->getBound();
-						//cout << tbb.radius() << "  " << tbb.radius2() << "  " << tbb.center() << endl;
-						float radius = tbb.radius() * 0.6;
-						mat = Matrix::scale(2 * radius, 2 * radius, 2 * radius);
-					}
-
-
-
-					_selectCollisionObj = _objMap[_lastModel];
-					mat *= _lastModel->getMatrix();
-					flag = true;
-					//cout << "flag true" << endl;
+					MatrixTransform * lastModel = dynamic_cast<MatrixTransform *>(np[i]);
+					//bool isalreadyChosed = false;
+					//for (int i = 0; i < _selectNum; i++) {
+					//	if (lastModel == _lastModelVec[i]) {
+					//		cout << "already chosed!" << endl;
+					//		isalreadyChosed = true;
+					//		_lastModelVec[i] = NULL;   //lazy delete without changing the selectNum
+					//		_selectCollisionObjVec[i] = NULL;
+					//		_selectionBoxVec[i]->setNodeMask(0);
+					//		break;
+					//	}
+					//}
+					//if (isalreadyChosed) break;
+					chooseOneMatrixTransform(lastModel);
 					break;
 				}
 			}
-			//if (nSize >= 3)
-			//{
-			//	//???why is 'nSize - 3'. 
-			//	
-			//	_lastModel = dynamic_cast<MatrixTransform *>(np[nSize - 3]);
-			//	
-			//	_selectCollisionObj = objMap[_lastModel];
-			//	mat *= _lastModel->getMatrix();
-			//}
-			if (!flag)
-			{
-				_lastModel = NULL;
-				_selectCollisionObj = NULL;
-			}
-
-			_selectionBox->setMatrix(mat);
-
 		}
 		else
 		{
-			_selectionBox->setNodeMask(0); //hide the box
-			_lastModel = NULL;
+			cout << "choose nothing" << endl;
+			_selectNum = 0;
+			for (int i = 0; i < _selectionBoxVec.size(); i++) {
+				_selectionBoxVec[i]->setNodeMask(0); //hide all the box
+			}
+			_lastModelVec.clear();
+			_selectCollisionObjVec.clear();
 
 		}
 	}
@@ -715,21 +773,41 @@ void PickModelHandler::handleKeyEvent(const osgGA::GUIEventAdapter &ea, osgGA::G
 		}
 
 		if (isTranslate) {
-			translateOneObj(_lastModel, _selectionBox, _selectCollisionObj, transVec);
+			for (int i = 0; i < _selectNum; i++) {
+				translateOneObj(_lastModelVec[i], _selectionBoxVec[i], _selectCollisionObjVec[i], transVec);
+			}
+
+
 		}
 		else if (isRotate) {
-			rotateOneObj(_lastModel, _selectionBox, _selectCollisionObj, rotMatrix);
+			for (int i = 0; i < _selectNum; i++) {
+				rotateOneObj(_lastModelVec[i], _selectionBoxVec[i], _selectCollisionObjVec[i], rotMatrix);
+			}
 		}
 		else if (isScale) {
-			scaleOneObj(_lastModel, _selectionBox, _selectCollisionObj, scaleFactor);
+			for (int i = 0; i < _selectNum; i++) {
+				scaleOneObj(_lastModelVec[i], _selectionBoxVec[i], _selectCollisionObjVec[i], scaleFactor);
+			}
 		}
 
 		else if (isDuplicate) {
-			addOneObj(_lastModel);
+			int tmp = _selectNum;
+			for (int i = 0; i < tmp; i++) {
+				MatrixTransform* tmatrix = duplicateOneObj(_lastModelVec[i]);
+				if (tmatrix != NULL) {
+					chooseOneMatrixTransform(tmatrix);
+				}
+			}
+
+
+
 
 		}
 		else if (isDelete) {
-			deleteOneObj(_lastModel, _selectionBox, _selectCollisionObj);
+			for (unsigned int i = 0; i < _selectNum; i++) {
+				deleteOneObj(i);
+			//	deleteOneObj(_lastModelVec[i], _selectionBoxVec[i], _selectCollisionObjVec[i]);
+			}
 		}
 	}
 }
