@@ -69,7 +69,6 @@
 #include <osgQt/GraphicsWindowQt>
 
 
-
 using namespace std;
 using namespace osg;
 using namespace osgGA;

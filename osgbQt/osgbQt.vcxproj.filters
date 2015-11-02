@@ -75,5 +75,8 @@
     <ClInclude Include="ShakeManipulator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MyManipulator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

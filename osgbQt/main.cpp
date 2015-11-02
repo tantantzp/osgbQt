@@ -1,59 +1,11 @@
 #include "Utils.h"
+#include "MyManipulator.h"
 #include "PickModelHandler.h"
-//#include "ShakeManipulator.h"
 #include "osgbUtil.h"
 
 
 
-//void  createScene(Group* root, btCollisionWorld* cw, PickModelHandler *picker)
-//{
-//	// Create a static box
-//	// osg::Geode* geode = new osg::Geode;
-//	// geode->addDrawable( osgwTools::makeBox( osg::Vec3( .5, .5, .5 ) ) );
-//
-//	ref_ptr<Node> model1 = osgDB::readNodeFile("D:/ProgramLib/objs/chair/chair_3.skp/chair_3.obj");  //;cow.osg");
-//	//ref_ptr<Node> model1 = osgDB::readNodeFile("cow.osg");
-//	Matrix transMatrix1 = osg::Matrix::translate(-20., 0., 0.);
-//	ref_ptr<MatrixTransform> trans1 = new MatrixTransform(transMatrix1);
-//	trans1->addChild(model1.get());
-//	root->addChild(trans1.get());
-//	btCollisionObject* btBoxObject1 = new btCollisionObject;
-//
-//
-//	btBoxObject1->setCollisionShape(osgbCollision::btConvexHullCollisionShapeFromOSG(model1.get()));
-//	//btBoxObject1->setCollisionShape(osgbCollision::btBoxCollisionShapeFromOSG(model1.get()));
-//	//btBoxObject1->setCollisionFlags( btCollisionObject::CF_STATIC_OBJECT );
-//	btBoxObject1->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
-//	btBoxObject1->setWorldTransform(osgbCollision::asBtTransform(transMatrix1));
-//	cw->addCollisionObject(btBoxObject1);
-//
-//	picker->insertObjPair(trans1.get(), btBoxObject1);
-//
-//	// Create a box we can drag around with the mouse
-//	//geode = new osg::Geode;
-//	//geode->addDrawable( osgwTools::makeBox( osg::Vec3( .5, .5, .5 ) ) );
-//	ref_ptr<Node> model2 = osgDB::readNodeFile("D:/ProgramLib/objs/chair/chair_7.skp/chair_7.obj"); 
-//	//ref_ptr<Node> model2 = osgDB::readNodeFile("cow.osg");
-//	Matrix transMatrix2 = osg::Matrix::translate(20, 0., 0.);
-//	ref_ptr<MatrixTransform> trans2 = new MatrixTransform(transMatrix2);
-//	trans2->addChild(model2.get());
-//	root->addChild(trans2.get());
-//
-//	btCollisionObject* btBoxObject2 = new btCollisionObject;
-//
-//
-//	btBoxObject2->setCollisionShape(osgbCollision::btConvexHullCollisionShapeFromOSG(model2.get()));
-//	//btBoxObject2->setCollisionShape( osgbCollision::btBoxCollisionShapeFromOSG( model2.get()));
-//	btBoxObject2->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
-//	btBoxObject2->setWorldTransform(osgbCollision::asBtTransform(transMatrix2));
-//	cw->addCollisionObject(btBoxObject2);
-//
-//	picker->insertObjPair(trans2.get(), btBoxObject2);
-//	//btCollisionObjectArray btObjArray = cw->getCollisionObjectArray();
-//	// mm->setCollisionObject( btBoxObject );
-//	//mm->setMatrixTransform( trans2.get() );
-//
-//}
+
 
 class MyViewerWidget : public QWidget
 {
@@ -69,14 +21,16 @@ public:
 			setLayout(layout);
 		}
 
+
 		_collisionWorld = initCollision();
 		_root = new osg::Group;
 		cout << "before picker" << endl;
 		_picker = new PickModelHandler(_collisionWorld, _root, &_viewer);
 		cout << "after picker" << endl;
-		
+
 		float widthX = 250., widthZ = 250., heightY = 100.;
 		_picker->addGround(widthX, widthZ, heightY);
+
 
 		for (int i = 0; i < 2; i++) {
 			string strobj1 = "D:/ProgramLib/objs/chair/chair_17.skp/chair_17.obj";
@@ -109,7 +63,8 @@ public:
 		//*BEGIN: set camera*/
 		osg::Camera* camera = _viewer.getCamera();
 		setCamera(camera);
-		//*END: set camera */
+		//*END: set camera */	
+		_manipulator->setPickModelHandler(_picker);
 
 		//* add event handler
 		_viewer.addEventHandler(_picker);
@@ -132,10 +87,12 @@ public:
 		camera->setClearColor(osg::Vec4(0.2, 0.2, 0.6, 1.0));
 		camera->setViewport(new osg::Viewport(0, 0, traits->width, traits->height));
 		camera->setProjectionMatrixAsPerspective(40., 1., 1., 50.);
-		osgGA::TrackballManipulator* tb = new osgGA::TrackballManipulator;
-		tb->setHomePosition(osg::Vec3(0, -30, 300), osg::Vec3(0, 0, 150), osg::Vec3(0, -1, 0));
-		_viewer.setCameraManipulator(tb);
+		//osgGA::TrackballManipulator* tb = new osgGA::TrackballManipulator;
+		_manipulator = new MyManipulator;
+		_manipulator->setHomePosition(osg::Vec3(0, -30, 300), osg::Vec3(0, 0, 150), osg::Vec3(0, -1, 0));
+		_viewer.setCameraManipulator(_manipulator);
 	}
+
 	osgQt::GraphicsWindowQt* createGraphicsWindow(int x, int y, int w, int h, const std::string& name = "", bool windowDecoration = false)
 	{
 		osg::DisplaySettings* ds = osg::DisplaySettings::instance().get();
@@ -174,6 +131,7 @@ protected:
 	btCollisionWorld* _collisionWorld;
 	//btDynamicsWorld* _bulletWorld;
 	PickModelHandler* _picker;
+	MyManipulator* _manipulator;
 	Group* _root;
 	osgQt::GraphicsWindowQt* gw;
 	double prevSimTime = 0.;

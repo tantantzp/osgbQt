@@ -3,6 +3,7 @@
 
 #include "Utils.h"
 #include "osgbUtil.h"
+#include "MyManipulator.h"
 
 
 class PickModelHandler : public osgGA::GUIEventHandler
@@ -26,6 +27,8 @@ public:
 		_groundWidthX = 0;
 		_groundWidthZ = 0;
 		_groundHeightY = 0;
+		_orientation = 0;
+
 	}
 	MatrixTransform *getOrCreateSelectionBox(unsigned int index);
 	void  PickModelHandler::detectCollision(bool& colState, btCollisionWorld* cw);
@@ -45,7 +48,8 @@ public:
 	MatrixTransform* duplicateOneObj(MatrixTransform * matrixTrans);
 	bool doAddObj(MatrixTransform * matrixTrans);
 	void chooseOneMatrixTransform(MatrixTransform* lastmodel);
-
+	void setOrientation(int orientation);
+	void hideWall(int index);
 
 protected:
 	bool translateOneObj(MatrixTransform* model, MatrixTransform* box, btCollisionObject* collisionObj, Vec3d transVec);
@@ -58,6 +62,7 @@ protected:
 	//bool duplicateOneObj(MatrixTransform* model, MatrixTransform* box, btCollisionObject* collisionObj);
 
 
+
 protected:
 	vector< ref_ptr<MatrixTransform> > _selectionBoxVec;		// bounding box of the selected model;
 	vector< MatrixTransform* > _lastModelVec;
@@ -68,13 +73,59 @@ protected:
 
 	map<MatrixTransform *, btCollisionObject *> _objMap;
 
+
 	double _lastX, _lastY;
 	double _groundWidthX, _groundWidthZ, _groundHeightY;
 	bool _colState;
 	float _transStep;
 	bool _hasGround;
 	unsigned int _selectNum;
+
+	Geode* wallBox[5];
+	int _orientation; 
+
 };
+
+
+void PickModelHandler::hideWall(int index)
+{
+	for (int i = 0; i < 5; i++)
+	{
+		if (i == index) wallBox[i]->setNodeMask(0);
+		else wallBox[i]->setNodeMask(1);
+
+	}
+
+}
+
+void  PickModelHandler::setOrientation(int orientation)
+{
+	_orientation = orientation;
+	cout << "ori:" << orientation << endl;
+	hideWall(orientation);
+	switch (orientation)
+	{
+	case(0) :
+		//hideWall(0);
+		break;
+	case(1) :
+		//hideWall(1);
+
+		break;
+	case(2) :
+		//hideWall(2);
+
+		break;
+	case(3) :
+		//hideWall(3);
+
+		break;
+	default:
+		break;
+	}
+
+
+}
 
 bool PickModelHandler::handle(const osgGA::GUIEventAdapter &ea, osgGA::GUIActionAdapter &aa)
 {
@@ -119,12 +170,21 @@ bool  PickModelHandler::doAddObj(MatrixTransform * trans)
 
 	if (collisionFlag) {
 		Vec3d initVec = transMatrix.getTrans();
-		Vec3d transVec[4] = { Vec3d(30., 0, 0), Vec3d(0, 0, 30.), Vec3d(-30., 0, 0), Vec3d(0, 0, -30.) }; // Vec3d(0, -30., 0)
+		Vec3d transVec[2];
+		if (_orientation == 1 || _orientation == 3) {
+			transVec[0] = Vec3d(30., 0., 0.);
+			transVec[1] = Vec3d(-30., 0., 0.);
+		}
+		else
+		{
+			transVec[0] = Vec3d(0., 0., 30.);
+			transVec[1] = Vec3d(0., 0., -30.);
+		}
 
 		for (int k = 1; k < 20; k++)
 		{
 			bool canbreak = false;
-			for (int i = 0; i < 4; i++){
+			for (int i = 0; i < 2; i++){
 
 				Vec3d tmp = transVec[i] * k;
 				if (tmp.x() < _groundWidthX  && tmp.y()  < _groundHeightY && tmp.z() < _groundWidthZ
@@ -200,29 +260,26 @@ void PickModelHandler::addGround(float widthX, float widthZ, float heightY)
 	float thick(2);
 	osg::MatrixTransform* shakeBox = new osg::MatrixTransform;
 	btCompoundShape* cs = new btCompoundShape;
-	{ // floor -Z
-		osg::Vec3 halfLengths(xDim, yDim, thick);
-	//	osg::Vec3 halfLengths(xDim*.5, yDim*.5, thick*.5);
-		osg::Vec3 center(0., 0., zDim);
-		//shakeBox->addChild(osgBox(center, halfLengths));
-		btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
-		btTransform trans; trans.setIdentity();
-		trans.setOrigin(osgbCollision::asBtVector3(center));
-		cs->addChildShape(trans, box);
-	}
-	{ // top +Z 
-		osg::Vec3 halfLengths(xDim, yDim, thick);
-		osg::Vec3 center(0., 0., -zDim);
-		shakeBox->addChild( osgBox( center, halfLengths ) );
-		btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
-		btTransform trans; trans.setIdentity();
-		trans.setOrigin(osgbCollision::asBtVector3(center));
-		cs->addChildShape(trans, box);
-	}
 	{ // left -X
 		osg::Vec3 halfLengths(thick, yDim, zDim);
 		osg::Vec3 center(-xDim, 0., 0.);
-		shakeBox->addChild(osgBox(center, halfLengths));
+
+		wallBox[0] = osgBox(center, halfLengths);
+		wallBox[0]->setNodeMask(1);
+		shakeBox->addChild(wallBox[0]);
+
+		btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
+		btTransform trans; trans.setIdentity();
+		trans.setOrigin(osgbCollision::asBtVector3(center));
+		cs->addChildShape(trans, box);
+	}
+	{ // -Z
+		osg::Vec3 halfLengths(xDim, yDim, thick);
+	//	osg::Vec3 halfLengths(xDim*.5, yDim*.5, thick*.5);
+		osg::Vec3 center(0., 0., zDim);
+		wallBox[1] = osgBox(center, halfLengths);
+		wallBox[1]->setNodeMask(1);
+		shakeBox->addChild(wallBox[1]);
 		btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
 		btTransform trans; trans.setIdentity();
 		trans.setOrigin(osgbCollision::asBtVector3(center));
@@ -231,12 +288,38 @@ void PickModelHandler::addGround(float widthX, float widthZ, float heightY)
 	{ // right +X
 		osg::Vec3 halfLengths(thick, yDim, zDim);
 		osg::Vec3 center(xDim, 0., 0.);
-		shakeBox->addChild(osgBox(center, halfLengths));
+		wallBox[2] = osgBox(center, halfLengths);
+		wallBox[2]->setNodeMask(1);
+		shakeBox->addChild(wallBox[2]);
+
 		btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
 		btTransform trans; trans.setIdentity();
 		trans.setOrigin(osgbCollision::asBtVector3(center));
 		cs->addChildShape(trans, box);
 	}
+	{ // +Z  
+		osg::Vec3 halfLengths(xDim, yDim, thick);
+		osg::Vec3 center(0., 0., -zDim);
+		wallBox[3] = osgBox(center, halfLengths);
+		wallBox[3]->setNodeMask(1);
+		shakeBox->addChild(wallBox[3]);
+		btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
+		btTransform trans; trans.setIdentity();
+		trans.setOrigin(osgbCollision::asBtVector3(center));
+		cs->addChildShape(trans, box);
+	}
+	{ //  -Y floor
+		osg::Vec3 halfLengths(xDim, thick, zDim);
+		osg::Vec3 center(0., yDim, 0.);
+		wallBox[4] = osgBox(center, halfLengths);
+		wallBox[4]->setNodeMask(1);
+		shakeBox->addChild(wallBox[4]);
+		btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
+		btTransform trans; trans.setIdentity();
+		trans.setOrigin(osgbCollision::asBtVector3(center));
+		cs->addChildShape(trans, box);
+	}
+
 	{ //  -Y  roof
 		osg::Vec3 halfLengths(xDim, thick, zDim);
 		osg::Vec3 center(0., -yDim, 0.);
@@ -246,15 +329,7 @@ void PickModelHandler::addGround(float widthX, float widthZ, float heightY)
 		trans.setOrigin(osgbCollision::asBtVector3(center));
 		cs->addChildShape(trans, box);
 	}
-	{ //  -Y floor
-		osg::Vec3 halfLengths(xDim, thick, zDim);
-		osg::Vec3 center(0., yDim, 0.);
-		shakeBox->addChild(osgBox(center, halfLengths));
-		btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
-		btTransform trans; trans.setIdentity();
-		trans.setOrigin(osgbCollision::asBtVector3(center));
-		cs->addChildShape(trans, box);
-	}
+
 	/* END: Create environment boxes */
 	shakeBox->setNodeMask(0x1);  //avoid choosing the Node Mask
 	_root->addChild(shakeBox);
@@ -701,6 +776,7 @@ void PickModelHandler::handleKeyEvent(const osgGA::GUIEventAdapter &ea, osgGA::G
 		bool isDelete = false;
 		Vec3d scaleFactor(1, 1, 1);
 		Matrix rotMatrix;
+
 		Vec3d transVec;
 
 		switch (ea.getKey())
@@ -731,12 +807,27 @@ void PickModelHandler::handleKeyEvent(const osgGA::GUIEventAdapter &ea, osgGA::G
 		//move along x(right/left)
 		case 'd':
 		case 'D':
-			transVec = Vec3d(-_transStep, 0.0f, 0.0f);
+			if (_orientation == 1)
+			    transVec = Vec3d(-_transStep, 0.0f, 0.0f);
+			else if (_orientation == 2) 
+				transVec = Vec3d(0.0f, 0.0f, _transStep);
+			else if (_orientation == 3)
+				transVec = Vec3d(_transStep, 0.0f, 0.0f);
+			else 
+				transVec = Vec3d(0.0f, 0.0f, -_transStep);
 			isTranslate = true;
 			break;
 		case 'a':
 		case 'A':
-			transVec = Vec3d(_transStep, 0.0f, 0.0f);
+			if (_orientation == 1)
+				transVec = Vec3d(_transStep, 0.0f, 0.0f);
+			else if (_orientation == 2)
+				transVec = Vec3d(0.0f, 0.0f, -_transStep);
+			else if (_orientation == 3)
+				transVec = Vec3d(-_transStep, 0.0f, 0.0f);
+			else
+				transVec = Vec3d(0.0f, 0.0f, _transStep);
+			//transVec = Vec3d(_transStep, 0.0f, 0.0f);
 			isTranslate = true;
 			break;
 	   //move along y(up/down)
@@ -752,12 +843,28 @@ void PickModelHandler::handleKeyEvent(const osgGA::GUIEventAdapter &ea, osgGA::G
 			break;
 		case 'x':
 		case 'X':
-			transVec = Vec3d(0.0f, 0.0f, _transStep);
+			if (_orientation == 1)
+				transVec = Vec3d(0.0f, 0.0f, _transStep);
+			else if (_orientation == 2)
+				transVec = Vec3d(_transStep, 0.0f, 0.0f);
+			else if (_orientation == 3)
+				transVec = Vec3d(0.0f, 0.0f, -_transStep);
+			else
+				transVec = Vec3d(-_transStep, 0.0f, 0.0f);
+			//transVec = Vec3d(0.0f, 0.0f, _transStep);
 			isTranslate = true;
 			break;
 		case 'c':
 		case 'C':
-			transVec = Vec3d(0.0f, 0.0f, -_transStep);
+			if (_orientation == 1)
+				transVec = Vec3d(0.0f, 0.0f, -_transStep);
+			else if (_orientation == 2)
+				transVec = Vec3d(-_transStep, 0.0f, 0.0f);
+			else if (_orientation == 3)
+				transVec = Vec3d(0.0f, 0.0f, _transStep);
+			else
+				transVec = Vec3d(_transStep, 0.0f, 0.0f);
+			//transVec = Vec3d(0.0f, 0.0f, -_transStep);
 			isTranslate = true;
 			break;
 		case 'u':  //duplicate
@@ -794,9 +901,9 @@ void PickModelHandler::handleKeyEvent(const osgGA::GUIEventAdapter &ea, osgGA::G
 			int tmp = _selectNum;
 			for (int i = 0; i < tmp; i++) {
 				MatrixTransform* tmatrix = duplicateOneObj(_lastModelVec[i]);
-				if (tmatrix != NULL) {
-					chooseOneMatrixTransform(tmatrix);
-				}
+				//if (tmatrix != NULL) {
+				//	chooseOneMatrixTransform(tmatrix);
+				//}
 			}
 
 
@@ -811,10 +918,5 @@ void PickModelHandler::handleKeyEvent(const osgGA::GUIEventAdapter &ea, osgGA::G
 		}
 	}
 }
-
-
-
-
-
 
 #endif
