@@ -9,21 +9,20 @@
 #include <set>
 
 #include <GL/glut.h>
-
+#include <osg/MatrixTransform>
 #include <osg/LOD>
 #include <osg/ProxyNode>
 #include <osg/NodeVisitor>
-#include <osgUtil/Simplifier>
+#include <osg/io_utils>
 #include <osg/Switch>
 #include <osg/Group>
+#include <osg/Geode>
 #include <osgDB/ReadFile>
 #include <osg/Drawable>
 #include <osg/ShapeDrawable>
 #include <osg/Geometry>
 #include <osg/Geode>
 #include <osg/TriangleFunctor>
-#include <osgViewer/Viewer>
-#include <osgViewer/CompositeViewer>
 #include <osg/MatrixTransform>
 #include <osg/PositionAttitudeTransform>
 #include <osg/PolygonMode>
@@ -35,19 +34,27 @@
 #include <osg/Program>
 #include <osg/LineWidth>
 #include <osg/Camera>
-#include <osgGA/TrackballManipulator>
-#include <osgGA/GUIEventHandler>
-#include <osgUtil/LineSegmentIntersector>
+#include <osg/ComputeBoundsVisitor>
+
 #include <osgViewer/Viewer>
+#include <osgViewer/CompositeViewer>
 #include <osgViewer/ViewerEventHandlers>
 #include <osgDB/ReadFile>
 #include <osgGA/TrackballManipulator>
 #include <osgGA/GUIEventHandler>
-#include <osg/MatrixTransform>
-#include <osg/Geode>
+#include <osgGA/TrackballManipulator>
+#include <osgGA/GUIEventHandler>
+
 #include <osgwTools/Shapes.h>
 #include <osgwTools/Version.h>
-#include <osg/io_utils>
+#include <osgShadow/ShadowedScene>
+#include <osgShadow/ShadowVolume>
+#include <osgShadow/ShadowTexture>
+#include <osgShadow/ShadowMap>
+#include <osgShadow/SoftShadowMap>
+
+#include <osgUtil/Simplifier>
+#include <osgUtil/LineSegmentIntersector>
 
 #include <btBulletCollisionCommon.h>
 #include <osgbCollision/CollisionShapes.h>
@@ -74,6 +81,8 @@ using namespace osg;
 using namespace osgGA;
 using namespace osgDB;
 
+const int ReceivesShadowTraversalMask = 0x1;
+const int CastsShadowTraversalMask = 0x2;
 
 #pragma comment(lib, "osg.lib")
 #pragma comment(lib, "osgViewer.lib")

@@ -3,8 +3,21 @@
 #include "PickModelHandler.h"
 #include "osgbUtil.h"
 
+Node* createLight( ) //Node* model)
+{
+	//ComputeBoundsVisitor cbbv;
+	//model->accept(cbbv);
+	//BoundingBox bb = cbbv.getBoundingBox();
+	Vec4 lightpos(0., -1000., 0., 1.);
+	//lightpos.set(bb.center().x(), bb.center().y(), bb.zMax() + bb.radius()*2.0f, 1.0f);
+	LightSource* ls = new LightSource();
+	ls->getLight()->setPosition(lightpos);
+	ls->getLight()->setAmbient(Vec4(0.6, 0.6, 0.6, 1.0));
+	ls->getLight()->setDiffuse(Vec4(0.8, 0.8, 0.8, 1.0));
+	ls->getLight()->setLightNum(3);;
 
-
+	return ls;
+}
 
 
 class MyViewerWidget : public QWidget
@@ -13,19 +26,21 @@ public:
 	MyViewerWidget() : QWidget()
 	{
 		gw = createGraphicsWindow(0, 0, 500, 500);
-		if (gw)
-		{
-			cout << "Valid GraphicsWindowQt" << endl;
-			QVBoxLayout* layout = new QVBoxLayout;
-			layout->addWidget(gw->getGLWidget());
-			setLayout(layout);
-		}
-
 
 		_collisionWorld = initCollision();
 		_root = new osg::Group;
+		_shadowScene = new osgShadow::ShadowedScene();
+		
+		
+		_shadowScene->setReceivesShadowTraversalMask(ReceivesShadowTraversalMask);
+		_shadowScene->setCastsShadowTraversalMask(CastsShadowTraversalMask);
+		osgShadow::ShadowTexture * st = new osgShadow::ShadowTexture();
+		_shadowScene->setShadowTechnique(st);
+
+
 		cout << "before picker" << endl;
-		_picker = new PickModelHandler(_collisionWorld, _root, &_viewer);
+		//_picker = new PickModelHandler(_collisionWorld, _root, &_viewer);
+		_picker = new PickModelHandler(_collisionWorld, _shadowScene, &_viewer);
 		cout << "after picker" << endl;
 
 		float widthX = 250., widthZ = 250., heightY = 100.;
@@ -58,6 +73,8 @@ public:
 		//createScene(_root, _collisionWorld, _picker);		
 
 		//*set scenedata
+		_shadowScene->addChild(createLight());
+		_root->addChild(_shadowScene);
 		_viewer.setSceneData(_root);		
 	
 		//*BEGIN: set camera*/
@@ -71,9 +88,18 @@ public:
 
 		// Use single thread here to avoid known issues under Linux
 		_viewer.setThreadingModel(osgViewer::Viewer::SingleThreaded);
-		
+		if (gw)
+		{
+			cout << "Valid GraphicsWindowQt" << endl;
+			QVBoxLayout* layout = new QVBoxLayout;
+			layout->addWidget(gw->getGLWidget());
+			setLayout(layout);
+		}
+
+		connect(&_timer, SIGNAL(timeout()), this, SLOT(repaint()));
 		connect(&_timer, SIGNAL(timeout()), this, SLOT(update()));
-		_timer.start(10);
+
+		_timer.start(40);
 	}
 	~MyViewerWidget()
 	{
@@ -88,7 +114,7 @@ public:
 		camera->setViewport(new osg::Viewport(0, 0, traits->width, traits->height));
 		camera->setProjectionMatrixAsPerspective(40., 1., 1., 50.);
 		//osgGA::TrackballManipulator* tb = new osgGA::TrackballManipulator;
-		_manipulator = new MyManipulator;
+		_manipulator = new MyManipulator(&_viewer);
 		_manipulator->setHomePosition(osg::Vec3(0, -30, 300), osg::Vec3(0, 0, 150), osg::Vec3(0, -1, 0));
 		_viewer.setCameraManipulator(_manipulator);
 	}
@@ -104,10 +130,10 @@ public:
 		traits->width = w;
 		traits->height = h;
 		traits->doubleBuffer = true;
-		traits->alpha = ds->getMinimumNumAlphaBits();
-		traits->stencil = ds->getMinimumNumStencilBits();
-		traits->sampleBuffers = ds->getMultiSamples();
-		traits->samples = ds->getNumMultiSamples();
+		//traits->alpha = ds->getMinimumNumAlphaBits();
+		//traits->stencil = ds->getMinimumNumStencilBits();
+		//traits->sampleBuffers = ds->getMultiSamples();
+		//traits->samples = ds->getNumMultiSamples();
 
 		return new osgQt::GraphicsWindowQt(traits.get());
 	}
@@ -133,6 +159,7 @@ protected:
 	PickModelHandler* _picker;
 	MyManipulator* _manipulator;
 	Group* _root;
+	osgShadow::ShadowedScene* _shadowScene;
 	osgQt::GraphicsWindowQt* gw;
 	double prevSimTime = 0.;
 };

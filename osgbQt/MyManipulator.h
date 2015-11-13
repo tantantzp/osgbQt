@@ -17,7 +17,7 @@ class MyManipulator : public OrbitManipulator
 
 public:
 
-	MyManipulator(int flags = DEFAULT_SETTINGS);
+	MyManipulator(osgViewer::Viewer* view = NULL, int flags = DEFAULT_SETTINGS);
 	MyManipulator(const MyManipulator& om,
 		const osg::CopyOp& copyOp = osg::CopyOp::SHALLOW_COPY);
 
@@ -32,7 +32,6 @@ public:
 
 public:
 
-	virtual bool handleFrame(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us);
 	virtual bool handleResize(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us);
 	virtual bool handleMouseMove(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us);
 	virtual bool handleMouseDrag(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us);
@@ -41,11 +40,14 @@ public:
 	virtual bool handleKeyDown(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us);
 	virtual bool handleKeyUp(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us);
 	virtual bool handleMouseWheel(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us);
-	
-	virtual bool performMovementLeftMouseButton(const double eventTimeDelta, const double dx, const double dy);
-	virtual bool performMovementMiddleMouseButton(const double eventTimeDelta, const double dx, const double dy);
-	virtual bool performMovementRightMouseButton(const double eventTimeDelta, const double dx, const double dy);
-	
+
+	virtual bool performMovement(float tx, float ty, int function); // 1:rotate camera 2:translate camera 
+    bool performCameraRotate(const double dx, const double dy);
+	bool performCameraTranslate(const double dx, const double dy);
+	bool performCameraZoom(const double zoomFactor);
+
+	void flushMouseEventStack();
+
 	void doRotate(Quat& rotation, const double yaw, const double pitch,const Vec3d& localUp);
 	void rotateTrackball(const float px0, const float py0, const float px1, const float py1, const float scale);
 	int setOrientation();
@@ -63,16 +65,24 @@ public:
 
 	int _orientation;
 	PickModelHandler* _myHandler;
+	osgViewer::Viewer* _view;
+//	osg::ref_ptr< const osgGA::GUIEventAdapter > _ga_t1;
+//	osg::ref_ptr< const osgGA::GUIEventAdapter > _ga_t0;
+	Vec2d _oldPoint;
+	Vec2d _curPoint;
+	double _zoomFactor;
 };
 
 /// Constructor.
-MyManipulator::MyManipulator(int flags)
+MyManipulator::MyManipulator(osgViewer::Viewer* view, int flags)
 : inherited(flags)
 {
 	setVerticalAxisFixed(false);
 	_orientation = -1; 
-
 	_allowThrow = false;
+	_view = view;
+	_oldPoint = _curPoint = Vec2d(0., 0.);
+	_zoomFactor = 0.1;
 }
 
 
@@ -83,6 +93,9 @@ inherited(om, copyOp)
 {
 	_orientation = -1;
 	_allowThrow = false;
+	_view = om._view;
+	_oldPoint = _curPoint = Vec2d(0., 0.);
+	_zoomFactor = 0.1;
 }
 
 int MyManipulator::setOrientation()
@@ -93,35 +106,27 @@ int MyManipulator::setOrientation()
 	double tz = tvec1.z();
 	int orientation;
 
-	//if (abs(ty) > abs(tx) && abs(ty) > abs(tz))
-	//{
-	//	if (ty > 0) orientation = 4;
-	//	else orientation = 5;
 
-	//}
-	//else 
-	//{
-		if (abs(tx) > abs(tz)) {
-			if (tx > 0)    //"+X" 
-			{
-				orientation = 3;
-			}
-			else // "-X" 
-			{
-				orientation = 1;
-			}
+	if (abs(tx) > abs(tz)) {
+		if (tx > 0)    //"+X" 
+		{
+			orientation = 3;
 		}
-		else {
-			if (tz > 0) //"+Z" 
-			{
-				orientation = 2;
-			}
-			else //"-Z" 
-			{
-				orientation = 0;
-			}
+		else // "-X" 
+		{
+			orientation = 1;
 		}
-	//}
+	}
+	else {
+		if (tz > 0) //"+Z" 
+		{
+			orientation = 2;
+		}
+		else //"-Z" 
+		{
+			orientation = 0;
+		}
+	}
 
 	if (orientation != _orientation)
 	{
@@ -153,12 +158,9 @@ void MyManipulator::setByInverseMatrix(const osg::Matrixd& matrix)
 /** Get the position of the manipulator as 4x4 matrix.*/
 osg::Matrixd MyManipulator::getMatrix() const
 {
-
-
 	return osg::Matrixd::translate(0., 0., _distance) *
 		osg::Matrixd::rotate(_rotation) *
 		osg::Matrixd::translate(_center);
-
 }
 
 
@@ -178,8 +180,8 @@ bool MyManipulator::handle(const GUIEventAdapter& ea, GUIActionAdapter& us)
 	switch (ea.getEventType())
 	{
 
-	case GUIEventAdapter::FRAME:
-		return handleFrame(ea, us);
+//	case GUIEventAdapter::FRAME:
+//		return handleFrame(ea, us);
 
 	case GUIEventAdapter::RESIZE:
 		return handleResize(ea, us);
@@ -223,33 +225,13 @@ bool MyManipulator::handle(const GUIEventAdapter& ea, GUIActionAdapter& us)
 }
 
 
-/// Handles GUIEventAdapter::FRAME event.
-bool MyManipulator::handleFrame(const GUIEventAdapter& ea, GUIActionAdapter& us)
-{
-	double current_frame_time = ea.getTime();
 
-	_delta_frame_time = current_frame_time - _last_frame_time;
-	_last_frame_time = current_frame_time;
-
-	if (_thrown && performMovement())
-	{
-		us.requestRedraw();
-	}
-
-	if (_animationData && _animationData->_isAnimating)
-	{
-		performAnimationMovement(ea, us);
-	}
-
-	return false;
-}
 
 /// Handles GUIEventAdapter::RESIZE event.
 bool MyManipulator::handleResize(const GUIEventAdapter& ea, GUIActionAdapter& us)
 {
 	init(ea, us);
 	us.requestRedraw();
-
 	return true;
 }
 
@@ -291,6 +273,54 @@ void MyManipulator::rotateTrackball(const float px0, const float py0,
 }
 
 
+
+/** Reset the internal GUIEvent stack.*/
+void MyManipulator::flushMouseEventStack()
+{
+	_oldPoint = Vec2d(-10., -10.);
+	_curPoint = Vec2d(-10., -10.);
+}
+
+
+bool MyManipulator::performMovement(float tx, float ty, int function)
+{
+	_oldPoint = _curPoint;
+	_curPoint = Vec2d(tx, ty);
+	//cout << "_curPoint " << _curPoint.x() <<" "<<_curPoint.y() << endl;
+	bool ret = false;
+	if (_curPoint.x() < -2. || _curPoint.y() < -2. || _oldPoint.x() < -2. || _oldPoint.y() < -2.
+		|| (function != 1 && function != 2))
+	{
+		ret = false;
+	}
+	else
+	{
+		float dx = _curPoint.x() - _oldPoint.x();
+		float dy = _curPoint.y() - _oldPoint.y();
+
+		if (dx == 0. && dy == 0.)
+			ret =  false;
+		if (function == 1)
+		{
+			ret = performCameraRotate(dx, dy);
+		}
+		else if (function == 2)
+		{
+			ret = performCameraTranslate(dx, dy);
+		}
+
+		ret = false;
+	}
+
+	if (ret)
+	{
+		_view->requestRedraw();
+	}
+	_view->requestContinuousUpdate(false);
+	setOrientation();
+
+	return ret;
+}
 
 
 /** Update rotation by yaw and pitch.
@@ -363,39 +393,28 @@ void MyManipulator::rotateWithFixedVertical(const float dx, const float dy, cons
 
 
 // doc in parent
-bool  MyManipulator::performMovementLeftMouseButton(const double eventTimeDelta, const double dx, const double dy)
+bool  MyManipulator::performCameraRotate(const double dx, const double dy)
 {
 	// rotate camera
-	//if (getVerticalAxisFixed())
-	    rotateWithFixedVertical(dx, dy, Vec3f(0, -1, 0));
-	//else
-	//	rotateTrackball(_ga_t0->getXnormalized(), _ga_t0->getYnormalized(),
-	//	_ga_t1->getXnormalized(), _ga_t1->getYnormalized(),
-	//	getThrowScale(eventTimeDelta));
+	rotateWithFixedVertical(dx, dy, Vec3f(0, -1, 0));
+
 	return true;
 }
 
 
 // doc in parent
-bool  MyManipulator::performMovementMiddleMouseButton(const double eventTimeDelta, const double dx, const double dy)
+bool  MyManipulator::performCameraTranslate(const double dx, const double dy)
 {
-	// pan model
 	//float scale = -0.3f * _distance * getThrowScale(eventTimeDelta);
 	//panModel(dx*scale, dy*scale);
-	//return true;
-	return false;
+	panModel(-dx * 100, -dy * 100);
+	return true;
 }
-
-
-// doc in parent
-bool  MyManipulator::performMovementRightMouseButton(const double eventTimeDelta, const double dx, const double dy)
+bool MyManipulator::performCameraZoom(const double zoomFactor)
 {
-	// zoom model
-	//zoomModel(dy * getThrowScale(eventTimeDelta), true);
-	//return true;
-
-	float scale = -0.3f * _distance * getThrowScale(eventTimeDelta);
-	panModel(dx*scale, dy*scale);
+	zoomModel(zoomFactor, true);
+	_view->requestRedraw();
+	_view->requestContinuousUpdate(false);
 	return true;
 }
 
@@ -403,14 +422,19 @@ bool  MyManipulator::performMovementRightMouseButton(const double eventTimeDelta
 /// Handles GUIEventAdapter::DRAG event.
 bool MyManipulator::handleMouseDrag(const GUIEventAdapter& ea, GUIActionAdapter& us)
 {
-	addMouseEvent(ea);
+	float tx = ea.getXnormalized();
+	float ty = ea.getYnormalized();
+	unsigned int buttonMask = ea.getButtonMask();
+	int function = 0;
+	if (buttonMask == GUIEventAdapter::LEFT_MOUSE_BUTTON)
+		function = 1;
+	else if (buttonMask == GUIEventAdapter::RIGHT_MOUSE_BUTTON)
+		function = 2;
 
-	if (performMovement())
-		us.requestRedraw();
 
-	us.requestContinuousUpdate(false);
-	_thrown = false;
-	setOrientation();
+	performMovement(tx, ty, function);
+
+	//_thrown = false
 
 	return true;
 }
@@ -422,16 +446,19 @@ bool MyManipulator::handleMouseDrag(const GUIEventAdapter& ea, GUIActionAdapter&
 bool MyManipulator::handleMousePush(const GUIEventAdapter& ea, GUIActionAdapter& us)
 {
 	flushMouseEventStack();
-	addMouseEvent(ea);
 
-	if (performMovement())
-		us.requestRedraw();
+	float tx = ea.getXnormalized();
+	float ty = ea.getYnormalized();
+	unsigned int buttonMask = ea.getButtonMask();
+	int function = 0;
+	if (buttonMask == GUIEventAdapter::LEFT_MOUSE_BUTTON)
+		function = 1;
+	else if (buttonMask == GUIEventAdapter::RIGHT_MOUSE_BUTTON)
+		function = 2;
 
-	us.requestContinuousUpdate(false);
-	_thrown = false;
 
-	setOrientation();
-
+	performMovement(tx, ty, function);
+	//_thrown = false;
 	return true;
 }
 
@@ -439,33 +466,18 @@ bool MyManipulator::handleMousePush(const GUIEventAdapter& ea, GUIActionAdapter&
 /// Handles GUIEventAdapter::RELEASE event.
 bool MyManipulator::handleMouseRelease(const GUIEventAdapter& ea, GUIActionAdapter& us)
 {
-	if (ea.getButtonMask() == 0)
-	{
+	float tx = ea.getXnormalized();
+	float ty = ea.getYnormalized();
+	unsigned int buttonMask = ea.getButtonMask();
+	int function = 0;
+	if (buttonMask == GUIEventAdapter::LEFT_MOUSE_BUTTON)
+		function = 1;
+	else if (buttonMask == GUIEventAdapter::RIGHT_MOUSE_BUTTON)
+		function = 2;
 
-		double timeSinceLastRecordEvent = _ga_t0.valid() ? (ea.getTime() - _ga_t0->getTime()) : DBL_MAX;
-		if (timeSinceLastRecordEvent > 0.02)
-			flushMouseEventStack();
+	performMovement(tx, ty, function);
 
-		if (isMouseMoving())
-		{
-
-			if (performMovement() && _allowThrow)
-			{
-				us.requestRedraw();
-				us.requestContinuousUpdate(true);
-				_thrown = true;
-			}
-
-			return true;
-		}
-	}
-	setOrientation();
 	flushMouseEventStack();
-	addMouseEvent(ea);
-	if (performMovement())
-		us.requestRedraw();
-	us.requestContinuousUpdate(false);
-	_thrown = false;
 
 	return true;
 }
@@ -477,32 +489,27 @@ bool MyManipulator::handleKeyDown(const GUIEventAdapter& ea, GUIActionAdapter& u
 
 	switch (ea.getKey())
 	{
-		//rotate around Y axis
-	case GUIEventAdapter::KEY_Space:
+	//case GUIEventAdapter::KEY_Space:
 
-		flushMouseEventStack();
-		_thrown = false;
-		home(ea, us);
-		return true;
-		break;
+	//	flushMouseEventStack();
+	//	_thrown = false;
+	//	home(ea, us);
+	//	return true;
+	//	break;
 	case GUIEventAdapter::KEY_Up:
-		cout << "up" << endl;
-		panModel(0, 10);
+		performCameraTranslate(0, -0.1);
 		return true;
 		break;
 	case GUIEventAdapter::KEY_Down:
-		cout << "down" << endl;
-		panModel(0, -10);
+		performCameraTranslate(0, 0.1);
 		return true;
 		break;
 	case GUIEventAdapter::KEY_Left:
-		cout << "left" << endl;
-		panModel(-10, 0);
+		performCameraTranslate(0.1, 0);
 		return true;
 		break;
 	case GUIEventAdapter::KEY_Right:
-		cout << "right" << endl;
-		panModel(10, 0);
+		performCameraTranslate(-0.1, 0);
 		return true;
 		break;
 	case 'p':
@@ -554,55 +561,47 @@ bool MyManipulator::handleMouseWheel(const GUIEventAdapter& ea, GUIActionAdapter
 {
 	osgGA::GUIEventAdapter::ScrollingMotion sm = ea.getScrollingMotion();
 
-	// handle centering
-	if (_flags & SET_CENTER_ON_WHEEL_FORWARD_MOVEMENT)
-	{
-
-		if (((sm == GUIEventAdapter::SCROLL_DOWN && _wheelZoomFactor > 0.)) ||
-			((sm == GUIEventAdapter::SCROLL_UP   && _wheelZoomFactor < 0.)))
-		{
-
-			if (getAnimationTime() <= 0.)
-			{
-				// center by mouse intersection (no animation)
-				setCenterByMousePointerIntersection(ea, us);
-			}
-			else
-			{
-				// start new animation only if there is no animation in progress
-				if (!isAnimating())
-					startAnimationByMousePointerIntersection(ea, us);
-
-			}
-
-		}
-	}
+	//// handle centering
+	//if (_flags & SET_CENTER_ON_WHEEL_FORWARD_MOVEMENT)
+	//{
+	//	if (((sm == GUIEventAdapter::SCROLL_DOWN && _wheelZoomFactor > 0.)) ||
+	//		((sm == GUIEventAdapter::SCROLL_UP   && _wheelZoomFactor < 0.)))
+	//	{
+	//		if (getAnimationTime() <= 0.)
+	//		{
+	//			// center by mouse intersection (no animation)
+	//			setCenterByMousePointerIntersection(ea, us);
+	//		}
+	//		else
+	//		{
+	//			// start new animation only if there is no animation in progress
+	//			if (!isAnimating())
+	//				startAnimationByMousePointerIntersection(ea, us);
+	//		}
+	//	}
+	//}
 
 	switch (sm)
 	{
 		// mouse scroll up event
-	case GUIEventAdapter::SCROLL_UP:
-	{
-		// perform zoom
-		zoomModel(_wheelZoomFactor, true);
-		us.requestRedraw();
-		us.requestContinuousUpdate(isAnimating() || _thrown);
-		return true;
-	}
+		case GUIEventAdapter::SCROLL_UP:
+		{
+			performCameraZoom(_zoomFactor);
+			return true;
+		}
 
-		// mouse scroll down event
-	case GUIEventAdapter::SCROLL_DOWN:
-	{
-		// perform zoom
-		zoomModel(-_wheelZoomFactor, true);
-		us.requestRedraw();
-		us.requestContinuousUpdate(isAnimating() || _thrown);
-		return true;
-}
+			// mouse scroll down event
+		case GUIEventAdapter::SCROLL_DOWN:
+		{
+			// perform zoom
+			performCameraZoom(-_zoomFactor);
+
+			return true;
+		}
 
 		// unhandled mouse scrolling motion
-	default:
-		return false;
+	    default:
+		    return false;
 	}
 }
 

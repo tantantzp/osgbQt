@@ -250,6 +250,7 @@ bool PickModelHandler::addOneObj(string objPath, Vec3d initPos){
 	Matrix transMatrix = osg::Matrix::translate(initPos.x(), initPos.y(), initPos.z());
 	ref_ptr<MatrixTransform> trans = new MatrixTransform(transMatrix);
 	trans->addChild(model.get());
+	trans->setNodeMask(CastsShadowTraversalMask);
 	return doAddObj(trans.get());
 }
 
@@ -290,7 +291,7 @@ void PickModelHandler::addGround(float widthX, float widthZ, float heightY)
 		osg::Vec3 center(-xDim, 0., 0.);
 
 		wallBox[0] = osgBox(center, halfLengths);
-		wallBox[0]->setNodeMask(1);
+		wallBox[0]->setNodeMask(0x1);
 		shakeBox->addChild(wallBox[0]);
 
 		btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
@@ -303,7 +304,7 @@ void PickModelHandler::addGround(float widthX, float widthZ, float heightY)
 	//	osg::Vec3 halfLengths(xDim*.5, yDim*.5, thick*.5);
 		osg::Vec3 center(0., 0., zDim);
 		wallBox[1] = osgBox(center, halfLengths);
-		wallBox[1]->setNodeMask(1);
+		wallBox[1]->setNodeMask(0x1);
 		shakeBox->addChild(wallBox[1]);
 		btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
 		btTransform trans; trans.setIdentity();
@@ -314,7 +315,7 @@ void PickModelHandler::addGround(float widthX, float widthZ, float heightY)
 		osg::Vec3 halfLengths(thick, yDim, zDim);
 		osg::Vec3 center(xDim, 0., 0.);
 		wallBox[2] = osgBox(center, halfLengths);
-		wallBox[2]->setNodeMask(1);
+		wallBox[2]->setNodeMask(0x1);
 		shakeBox->addChild(wallBox[2]);
 
 		btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
@@ -326,7 +327,7 @@ void PickModelHandler::addGround(float widthX, float widthZ, float heightY)
 		osg::Vec3 halfLengths(xDim, yDim, thick);
 		osg::Vec3 center(0., 0., -zDim);
 		wallBox[3] = osgBox(center, halfLengths);
-		wallBox[3]->setNodeMask(1);
+		wallBox[3]->setNodeMask(0x1);
 		shakeBox->addChild(wallBox[3]);
 		btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
 		btTransform trans; trans.setIdentity();
@@ -337,7 +338,7 @@ void PickModelHandler::addGround(float widthX, float widthZ, float heightY)
 		osg::Vec3 halfLengths(xDim, thick, zDim);
 		osg::Vec3 center(0., yDim, 0.);
 		wallBox[4] = osgBox(center, halfLengths);
-		wallBox[4]->setNodeMask(1);
+		wallBox[4]->setNodeMask(0x1);
 		shakeBox->addChild(wallBox[4]);
 		btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
 		btTransform trans; trans.setIdentity();
@@ -734,7 +735,8 @@ bool PickModelHandler::scaleGap(vector<MatrixTransform*> modelVec, vector<Matrix
 
 		Matrix transMatrix;
 		Vec3d dirVec = (transVec1 - modelCenter);
-		dirVec.normalize();
+		dirVec *= 0.01;
+		//dirVec.normalize();
 
 		transMatrix = Matrix::translate(dirVec * gapDistance);
 
@@ -1261,6 +1263,7 @@ void  PickModelHandler::handlePickEvent(float clickX, float clickY )//const osgG
 
 	//osgViewer::Viewer *viewer = dynamic_cast<osgViewer::Viewer *>(&aa);
 	osgViewer::Viewer *viewer = _view;
+	
 	if (viewer)
 	{
 
