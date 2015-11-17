@@ -13,6 +13,34 @@ float degreeToPie(float degree)
 	return res;
 }
 
+StateSet* createTextureState(Image* img)
+{
+	StateSet* stateset;
+	if (img)
+	{
+		cout << "wall image!" << endl;
+		Texture2D* texture = new Texture2D;
+		texture->setWrap(Texture2D::WRAP_S, Texture2D::REPEAT);
+		texture->setWrap(Texture2D::WRAP_T, Texture2D::REPEAT);
+		//texture->setFilter(Texture::MIN_FILTER, Texture::LINEAR);
+		//texture->setFilter(Texture::MAG_FILTER, Texture::NEAREST);
+
+		texture->setImage(img);
+		//TexGen* texgen = new TexGen;
+		//texgen->setMode(TexGen::OBJECT_LINEAR);
+		//texgen->setMode(TexGen::SPHERE_MAP);
+		//texgen->setPlane(TexGen::S, Plane(0., 0., 1., 0.));
+
+		stateset = new StateSet;
+		stateset->setTextureAttributeAndModes(0, texture, StateAttribute::ON);
+
+		//stateset->setTextureAttributeAndModes(0, texgen, StateAttribute::ON);
+		//stateset->setTextureMode(0, GL_TEXTURE_GEN_S, StateAttribute::ON | StateAttribute::OVERRIDE);
+		//stateset->setTextureMode(0, GL_TEXTURE_GEN_T, StateAttribute::ON | StateAttribute::OVERRIDE);
+	}
+	return stateset;
+}
+
 
 class PickModelHandler : public osgGA::GUIEventHandler
 {
@@ -68,6 +96,8 @@ protected:
 	bool translateOneObj(MatrixTransform* model, MatrixTransform* box, btCollisionObject* collisionObj, Vec3d transVec);
 	bool rotateOneObj(MatrixTransform* model, MatrixTransform* box, btCollisionObject* collisionObj, Matrix rotMatrix);
 	bool scaleOneObj(MatrixTransform* model, MatrixTransform* box, btCollisionObject* collisionObj, Vec3d scaleVec);
+	bool rotateMultipleObj(vector<MatrixTransform*> modelVec, vector<MatrixTransform*> boxVec, vector<btCollisionObject*> collisionObjVec, Matrix rotMatrix);
+
 	void handleKeyEvent(const osgGA::GUIEventAdapter &ea, osgGA::GUIActionAdapter &aa);
 	void handlePickEvent(float clickX, float clickY);//const osgGA::GUIEventAdapter &ea, osgGA::GUIActionAdapter &aa);
 	//bool deleteOneObj(MatrixTransform* model, MatrixTransform* box, btCollisionObject* collisionObj);
@@ -95,7 +125,7 @@ protected:
 	bool _hasGround;
 	unsigned int _selectNum;
 
-	Geode* wallBox[5];
+	Geode* wallBox[6];
 	//orientation and corresponding direction Vec3
 	int _orientation; 
 	Vec3f _leftVec, _rightVec, _forwardVec, _backwardVec, _upVec, _downVec;
@@ -284,6 +314,15 @@ void PickModelHandler::addGround(float widthX, float widthZ, float heightY)
 	float yDim(heightY);
 	float zDim(widthZ);
 	float thick(2);
+
+	Image* wallImage = osgDB::readImageFile("wall2.jpg");
+	Image* groundImage = osgDB::readImageFile("ground.jpg");
+	StateSet* wallStateSet;
+	StateSet* groundStateSet;
+	wallStateSet = createTextureState(wallImage);
+	groundStateSet = createTextureState(groundImage);
+
+
 	osg::MatrixTransform* shakeBox = new osg::MatrixTransform;
 	btCompoundShape* cs = new btCompoundShape;
 	{ // left -X
@@ -291,6 +330,8 @@ void PickModelHandler::addGround(float widthX, float widthZ, float heightY)
 		osg::Vec3 center(-xDim, 0., 0.);
 
 		wallBox[0] = osgBox(center, halfLengths);
+		if (wallImage) wallBox[0]->setStateSet(wallStateSet);
+		
 		wallBox[0]->setNodeMask(0x1);
 		shakeBox->addChild(wallBox[0]);
 
@@ -304,6 +345,7 @@ void PickModelHandler::addGround(float widthX, float widthZ, float heightY)
 	//	osg::Vec3 halfLengths(xDim*.5, yDim*.5, thick*.5);
 		osg::Vec3 center(0., 0., zDim);
 		wallBox[1] = osgBox(center, halfLengths);
+		if (wallImage) wallBox[1]->setStateSet(wallStateSet);
 		wallBox[1]->setNodeMask(0x1);
 		shakeBox->addChild(wallBox[1]);
 		btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
@@ -315,6 +357,7 @@ void PickModelHandler::addGround(float widthX, float widthZ, float heightY)
 		osg::Vec3 halfLengths(thick, yDim, zDim);
 		osg::Vec3 center(xDim, 0., 0.);
 		wallBox[2] = osgBox(center, halfLengths);
+		if (wallImage) wallBox[2]->setStateSet(wallStateSet);
 		wallBox[2]->setNodeMask(0x1);
 		shakeBox->addChild(wallBox[2]);
 
@@ -327,6 +370,7 @@ void PickModelHandler::addGround(float widthX, float widthZ, float heightY)
 		osg::Vec3 halfLengths(xDim, yDim, thick);
 		osg::Vec3 center(0., 0., -zDim);
 		wallBox[3] = osgBox(center, halfLengths);
+		if (wallImage) wallBox[3]->setStateSet(wallStateSet);
 		wallBox[3]->setNodeMask(0x1);
 		shakeBox->addChild(wallBox[3]);
 		btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
@@ -338,6 +382,7 @@ void PickModelHandler::addGround(float widthX, float widthZ, float heightY)
 		osg::Vec3 halfLengths(xDim, thick, zDim);
 		osg::Vec3 center(0., yDim, 0.);
 		wallBox[4] = osgBox(center, halfLengths);
+		if (groundImage) wallBox[4]->setStateSet(groundStateSet);
 		wallBox[4]->setNodeMask(0x1);
 		shakeBox->addChild(wallBox[4]);
 		btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
@@ -345,7 +390,17 @@ void PickModelHandler::addGround(float widthX, float widthZ, float heightY)
 		trans.setOrigin(osgbCollision::asBtVector3(center));
 		cs->addChildShape(trans, box);
 	}
-
+	//{ //  -Y floor2
+	//	osg::Vec3 halfLengths(xDim, thick, zDim);
+	//	osg::Vec3 center(0., yDim + 8., 0.);
+	//	wallBox[5] = osgBox(center, halfLengths);
+	//	wallBox[5]->setNodeMask(0x4);
+	//	shakeBox->addChild(wallBox[5]);
+	//	btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
+	//	btTransform trans; trans.setIdentity();
+	//	trans.setOrigin(osgbCollision::asBtVector3(center));
+	//	cs->addChildShape(trans, box);
+	//}
 	//{ //  -Y  roof
 	//	osg::Vec3 halfLengths(xDim, thick, zDim);
 	//	osg::Vec3 center(0., -yDim, 0.);
@@ -372,7 +427,7 @@ MatrixTransform *PickModelHandler::getOrCreateSelectionBox(unsigned int index)
 {
 	if (index >= _selectionBoxVec.size()) {
 		ref_ptr<ShapeDrawable> boxDrawable = new ShapeDrawable(new Box(Vec3(), 1.0f));
-		boxDrawable->setColor(Vec4(1.0f, 0.0f, 0.0f, 0.0f));	// red color
+		boxDrawable->setColor(Vec4(0.3f, 0.3f, 0.3f, 0.0f));	
 		ref_ptr<Geode> geode = new Geode;
 		geode->addDrawable(boxDrawable.get());
 		MatrixTransform* selectionBox = new MatrixTransform;
@@ -655,7 +710,143 @@ bool PickModelHandler::scaleOneObj(MatrixTransform* model, MatrixTransform* box,
 	return false;
 }
 
+bool PickModelHandler::rotateMultipleObj(vector<MatrixTransform*> modelVec, vector<MatrixTransform*> boxVec, vector<btCollisionObject*> collisionObjVec, Matrix rotMatrix)
+{
+	if (modelVec.size() > boxVec.size() || modelVec.size() > collisionObjVec.size())
+	{
+		cout << "model:" << modelVec.size() << " boxVec: " << boxVec.size() << " collisionObj: " << collisionObjVec.size() << endl;
+		cout << "rotate multipleObj error: model ,box and collisionObj size don't match" << endl;
+		return false;
+	}
 
+	int Num = 0;
+	float Radius = 0;
+
+	Vec3d modelCenter(0., 0., 0.), boxCenter(0., 0., 0.), collisionObjCenter(0., 0., 0.);
+
+	vector<Matrix> modelOriMatrixVec;
+	vector<Matrix> boxOriMatrixVec;
+	vector<Matrix> collisionOriMatrixVec;
+	for (int i = 0; i < modelVec.size(); i++)
+	{
+		MatrixTransform* model = modelVec[i];
+		MatrixTransform* box = boxVec[i];
+		btCollisionObject* collisionObj = collisionObjVec[i];
+		if (model == NULL || collisionObj == NULL || box == NULL) {
+			continue;
+		}
+
+		modelOriMatrixVec.push_back(model->getMatrix());
+		boxOriMatrixVec.push_back(box->getMatrix());
+		btTransform oriBtTrans = collisionObj->getWorldTransform();
+		//btVector3 oriBtScale = collisionObj->getCollisionShape()->getLocalScaling();
+		collisionOriMatrixVec.push_back(osgbCollision::asOsgMatrix(oriBtTrans));
+
+		Vec3d transVec1 = modelOriMatrixVec[Num].getTrans();
+		Vec3d transVec2 = boxOriMatrixVec[Num].getTrans();
+		Vec3d transVec3 = collisionOriMatrixVec[Num].getTrans();
+
+		modelCenter += transVec1;
+		boxCenter += transVec2;
+		collisionObjCenter += transVec3;
+
+		BoundingSphere tbb = model->getBound();
+		float tradius = tbb.radius() * 0.6;
+		if (tradius > Radius) Radius = tradius;
+
+		Num++;
+	}
+	modelCenter /= (float)Num;
+	boxCenter /= (float)Num;
+	collisionObjCenter /= (float)Num;
+	//modelCenter += _backwardVec * 60;
+	//boxCenter += _backwardVec * 60;
+	//collisionObjCenter += _backwardVec * 60;
+
+
+	bool collisionFlag = false;
+	int tmpN = 0;
+	for (int i = 0; i < modelVec.size(); i++)
+	{
+		MatrixTransform* model = modelVec[i];
+		MatrixTransform* box = boxVec[i];
+		btCollisionObject* collisionObj = collisionObjVec[i];
+		if (model == NULL || collisionObj == NULL || box == NULL) {
+			continue;
+		}
+
+		Matrix matrix = modelOriMatrixVec[tmpN];
+		Matrix smatrix = boxOriMatrixVec[tmpN];
+		Matrix btMatrix = collisionOriMatrixVec[tmpN];
+
+		//Vec3d transVec1 = matrix.getTrans();
+		//Vec3d transVec2 = smatrix.getTrans();
+		//Vec3d transVec3 = btMatrix.getTrans();
+
+		//translate to center
+		matrix *= Matrix::translate(-modelCenter);
+		smatrix *= Matrix::translate(-boxCenter);
+		btMatrix *= Matrix::translate(-collisionObjCenter);
+
+		//rotate
+		matrix *= rotMatrix;
+		//smatrix *= rotMatrix;
+		btMatrix *= rotMatrix;
+
+		//translate back
+		matrix *= Matrix::translate(modelCenter);
+		smatrix *= Matrix::translate(boxCenter);
+		btMatrix *= Matrix::translate(collisionObjCenter);
+
+		model->setMatrix(matrix);
+		box->setMatrix(smatrix);
+		collisionObj->setWorldTransform(osgbCollision::asBtTransform(btMatrix));
+
+		tmpN++;
+	}
+
+	_collisionWorld->performDiscreteCollisionDetection();
+	detectCollision(_colState, _collisionWorld);
+
+	if (_colState)
+	{
+		cout << "collision happen during row permutation" << endl;
+		int tmpN2 = 0;
+
+		for (int i = 0; i < modelVec.size(); i++)
+		{
+			MatrixTransform* model = modelVec[i];
+			MatrixTransform* box = boxVec[i];
+			btCollisionObject* collisionObj = collisionObjVec[i];
+			if (model == NULL || collisionObj == NULL || box == NULL) {
+				continue;
+			}
+
+			model->setMatrix(modelOriMatrixVec[tmpN2]);
+			box->setMatrix(boxOriMatrixVec[tmpN2]);
+			collisionObj->setWorldTransform(osgbCollision::asBtTransform(collisionOriMatrixVec[tmpN2]));
+			tmpN2++;
+		}
+		_colState = false;
+		return false;
+	}
+	else
+	{
+		cout << "permutaion success!" << endl;
+		clearAllchoose();
+		int tmpN2 = 0;
+		for (int i = 0; i < modelVec.size(); i++)
+		{
+			MatrixTransform* model = modelVec[i];
+			if (model == NULL) continue;
+			chooseOneMatrixTransform(model);
+			tmpN2++;
+		}
+		return true;
+	}
+
+
+}
 bool PickModelHandler::scaleGap(vector<MatrixTransform*> modelVec, vector<MatrixTransform*> boxVec, vector<btCollisionObject*> collisionObjVec, bool isInceaseGap)
 {
 	if (modelVec.size() > boxVec.size() || modelVec.size() > collisionObjVec.size())
@@ -1173,7 +1364,7 @@ bool PickModelHandler::permutateRound(vector<MatrixTransform*> modelVec, vector<
 
 void PickModelHandler::chooseOneMatrixTransform(MatrixTransform* lastModel)
 {
-	cout << "choose one matrixTransform" << endl;
+	
 	bool isalreadyChosed = false;
 	for (int i = 0; i < _selectNum; i++) {
 		if (lastModel == _lastModelVec[i]) {
@@ -1225,7 +1416,7 @@ void PickModelHandler::chooseOneMatrixTransform(MatrixTransform* lastModel)
 		mat = Matrix::scale(2 * radius, 2 * radius, 2 * radius);
 	}
 
-	cout << "push back to vector:  " << _selectNum << endl;
+	
 	_lastModelVec.push_back(lastModel);
 	_selectCollisionObjVec.push_back(_objMap[lastModel]);
 	mat *= lastModel->getMatrix();
@@ -1239,11 +1430,9 @@ void PickModelHandler::chooseOneMatrixTransform(MatrixTransform* lastModel)
 		_selectionBoxVec[_selectNum]->setMatrix(mat);
 		_selectionBoxVec[_selectNum]->setNodeMask(0x1);
 	}
-	cout << "_selectNum: " << _selectNum << endl;
-	_selectNum++; //increment the selected obj number
-	//for (int i = _selectNum; i < _selectionBoxVec.size(); i++) {
-	//	_selectionBoxVec[i]->setNodeMask(0); //hide  the extra boxes
-	//}
+	
+	_selectNum++; //increment the selected obj 
+
 	return;
 }
 
@@ -1342,6 +1531,7 @@ void PickModelHandler::handleKeyEvent(const osgGA::GUIEventAdapter &ea, osgGA::G
 		bool isPermutateRow = false;
 		bool isPermutateCol = false;
 		bool isInceaseGap = false;
+		bool isRotateMultiple = false;
 
 		Vec3d scaleFactor(1, 1, 1);
 		Matrix rotMatrix;
@@ -1361,7 +1551,16 @@ void PickModelHandler::handleKeyEvent(const osgGA::GUIEventAdapter &ea, osgGA::G
 			rotMatrix = Matrix::rotate(degreeToPie(-45), _upVec);
 			isRotate = true;
 			break;
-		
+		case 'h':
+		case 'H':
+			rotMatrix = Matrix::rotate(degreeToPie(45), _upVec);
+			isRotateMultiple = true;
+			break;
+		case 'j':
+		case 'J':
+			rotMatrix = Matrix::rotate(degreeToPie(-45), _upVec);
+			isRotateMultiple = true;
+			break;
 	    //scale object
 		case 'm':
 		case 'M':
@@ -1434,8 +1633,38 @@ void PickModelHandler::handleKeyEvent(const osgGA::GUIEventAdapter &ea, osgGA::G
 			}
 		}
 		else if (isRotate) {
-			for (int i = 0; i < _selectNum; i++) {
-				rotateOneObj(_lastModelVec[i], _selectionBoxVec[i], _selectCollisionObjVec[i], rotMatrix);
+			int tmp = _selectNum;
+			bool flag = true;
+			int i = 0;
+			for (i = 0; i < _selectNum; i++) {
+				flag = rotateOneObj(_lastModelVec[i], _selectionBoxVec[i], _selectCollisionObjVec[i], rotMatrix);
+				if (!flag) {
+					break;
+				}
+			}
+			if (tmp >= 2 && !flag)
+			{
+				scaleGap(_lastModelVec, _selectionBoxVec, _selectCollisionObjVec, true);
+				scaleGap(_lastModelVec, _selectionBoxVec, _selectCollisionObjVec, true);
+				scaleGap(_lastModelVec, _selectionBoxVec, _selectCollisionObjVec, true);
+
+				for (; i < _selectNum; i++) {
+					rotateOneObj(_lastModelVec[i], _selectionBoxVec[i], _selectCollisionObjVec[i], rotMatrix);
+					
+				}
+
+			}
+
+		}
+		else if (isRotateMultiple) {
+			int tmp = _selectNum;
+			if (tmp < 2)
+			{
+				cout << "too few objs to rotate" << endl;
+			}
+			else
+			{
+				rotateMultipleObj(_lastModelVec, _selectionBoxVec, _selectCollisionObjVec, rotMatrix);
 			}
 		}
 		else if (isScale) {

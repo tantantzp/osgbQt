@@ -26,6 +26,14 @@ public:
 	MyViewerWidget() : QWidget()
 	{
 		gw = createGraphicsWindow(0, 0, 500, 500);
+		if (gw)
+		{
+			cout << "Valid GraphicsWindowQt" << endl;
+			QVBoxLayout* layout = new QVBoxLayout;
+			layout->addWidget(gw->getGLWidget());
+			setLayout(layout);
+		}
+
 
 		_collisionWorld = initCollision();
 		_root = new osg::Group;
@@ -34,8 +42,10 @@ public:
 		
 		_shadowScene->setReceivesShadowTraversalMask(ReceivesShadowTraversalMask);
 		_shadowScene->setCastsShadowTraversalMask(CastsShadowTraversalMask);
-		osgShadow::ShadowTexture * st = new osgShadow::ShadowTexture();
-		_shadowScene->setShadowTechnique(st);
+		//osgShadow::ShadowTexture * st = new osgShadow::ShadowTexture();
+		//_shadowScene->setShadowTechnique(st);
+		osgShadow::ShadowMap * sm = new osgShadow::ShadowMap();
+		_shadowScene->setShadowTechnique(sm);
 
 
 		cout << "before picker" << endl;
@@ -43,32 +53,40 @@ public:
 		_picker = new PickModelHandler(_collisionWorld, _shadowScene, &_viewer);
 		cout << "after picker" << endl;
 
-		float widthX = 250., widthZ = 250., heightY = 100.;
+		float widthX = 300., widthZ = 300., heightY = 150.;
 		_picker->addGround(widthX, widthZ, heightY);
 
 
 		for (int i = 0; i < 2; i++) {
 			string strobj1 = "D:/ProgramLib/objs/chair/chair_17.skp/chair_17.obj";
-			Vec3d pos1(-40., 0., 0.);
+			Vec3d pos1(-40., 70., 0.);
 			_picker->addOneObj(strobj1, pos1);
 		}
 		for (int i = 0; i < 2; i++) {
 			string strobj2 = "D:/ProgramLib/objs/chair/chair_8.skp/chair_8.obj";
-			Vec3d pos2(40., 0., 0.);
+			Vec3d pos2(40., 70., 0.);
 			_picker->addOneObj(strobj2, pos2);
 		}
 
-		for (int i = 0; i < 1; i++) {
-			string strobj = "D:/ProgramLib/objs/desk/bedroom_143/11.obj";
-			Vec3d pos(0., 0., 80.);
-			_picker->addOneObj(strobj, pos);
-		}
+	
+		string strobj = "D:/ProgramLib/objs/desk/bedroom_143/11.obj";
+		Vec3d pos(100., 70., 80.);
+		_picker->addOneObj(strobj, pos);
+		
+		//string strobj = "D:/ProgramLib/objs/table/dining_table_28.skp/dining_table_28.obj";
+		//Vec3d pos(0., 70., 80.);
+		//_picker->addOneObj(strobj, pos);
 
-		for (int i = 0; i < 1; i++) {
-			string strobj = "D:/ProgramLib/objs/bed/bed_1.skp/bed_1.obj";
-			Vec3d pos(80., 0., 80.);
-			_picker->addOneObj(strobj, pos);
-		}
+		strobj = "D:/ProgramLib/objs/table/dining_table_55.skp/dining_table_55.obj";
+		Vec3d pos1(0., 70., 80.);
+		_picker->addOneObj(strobj, pos);
+
+
+		//for (int i = 0; i < 1; i++) {
+		//	string strobj = "D:/ProgramLib/objs/bed/bed_1.skp/bed_1.obj";
+		//	Vec3d pos(80., 0., 80.);
+		//	_picker->addOneObj(strobj, pos);
+		//}
 
 		//createScene(_root, _collisionWorld, _picker);		
 
@@ -88,13 +106,7 @@ public:
 
 		// Use single thread here to avoid known issues under Linux
 		_viewer.setThreadingModel(osgViewer::Viewer::SingleThreaded);
-		if (gw)
-		{
-			cout << "Valid GraphicsWindowQt" << endl;
-			QVBoxLayout* layout = new QVBoxLayout;
-			layout->addWidget(gw->getGLWidget());
-			setLayout(layout);
-		}
+
 
 		connect(&_timer, SIGNAL(timeout()), this, SLOT(repaint()));
 		connect(&_timer, SIGNAL(timeout()), this, SLOT(update()));
@@ -110,12 +122,12 @@ public:
 	void setCamera(Camera* camera){
 		const osg::GraphicsContext::Traits* traits = gw->getTraits();
 		camera->setGraphicsContext(gw);
-		camera->setClearColor(osg::Vec4(0.2, 0.2, 0.6, 1.0));
+		camera->setClearColor(osg::Vec4(0.5, 0.5, 0.5, 1.0));
 		camera->setViewport(new osg::Viewport(0, 0, traits->width, traits->height));
 		camera->setProjectionMatrixAsPerspective(40., 1., 1., 50.);
 		//osgGA::TrackballManipulator* tb = new osgGA::TrackballManipulator;
 		_manipulator = new MyManipulator(&_viewer);
-		_manipulator->setHomePosition(osg::Vec3(0, -30, 300), osg::Vec3(0, 0, 150), osg::Vec3(0, -1, 0));
+		_manipulator->setHomePosition(osg::Vec3(0, -50, 500), osg::Vec3(0, 0, 250), osg::Vec3(0, -1, 0));
 		_viewer.setCameraManipulator(_manipulator);
 	}
 
