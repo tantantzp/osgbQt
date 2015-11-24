@@ -56,6 +56,9 @@ public:
 		float widthX = 300., widthZ = 300., heightY = 150.;
 		_picker->addGround(widthX, widthZ, heightY);
 
+		Image* tImage = osgDB::readImageFile("man.jpg");
+		_picker->createBillboardTree(tImage);
+
 
 		for (int i = 0; i < 2; i++) {
 			string strobj1 = "D:/ProgramLib/objs/chair/chair_17.skp/chair_17.obj";
@@ -98,8 +101,16 @@ public:
 		//*BEGIN: set camera*/
 		osg::Camera* camera = _viewer.getCamera();
 		setCamera(camera);
+	//	addSlaveCamera();
 		//*END: set camera */	
 		_manipulator->setPickModelHandler(_picker);
+
+		DisplaySettings *dis = new osg::DisplaySettings();
+		dis->setStereo(true);
+		float eyeSeperation = 0.01f;
+		dis->setEyeSeparation(eyeSeperation);
+
+		_viewer.setDisplaySettings(dis);
 
 		//* add event handler
 		_viewer.addEventHandler(_picker);
@@ -129,6 +140,16 @@ public:
 		_manipulator = new MyManipulator(&_viewer);
 		_manipulator->setHomePosition(osg::Vec3(0, -50, 500), osg::Vec3(0, 0, 250), osg::Vec3(0, -1, 0));
 		_viewer.setCameraManipulator(_manipulator);
+	}
+
+	void addSlaveCamera()
+	{
+		const osg::GraphicsContext::Traits* traits = gw->getTraits();
+		Camera* cameraClient = new Camera();
+		cameraClient->setGraphicsContext(gw);
+		cameraClient->setViewport(new Viewport(0, 0, traits->width / 3, traits->height / 3));
+		_viewer.addSlave(cameraClient);
+		
 	}
 
 	osgQt::GraphicsWindowQt* createGraphicsWindow(int x, int y, int w, int h, const std::string& name = "", bool windowDecoration = false)
