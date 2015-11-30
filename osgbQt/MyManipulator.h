@@ -433,7 +433,7 @@ bool MyManipulator::handleMouseDrag(const GUIEventAdapter& ea, GUIActionAdapter&
 
 
 	performMovement(tx, ty, function);
-
+	//_myHandler->addBackground("wall1.jpg");
 	//_thrown = false
 
 	return true;
@@ -458,6 +458,7 @@ bool MyManipulator::handleMousePush(const GUIEventAdapter& ea, GUIActionAdapter&
 
 
 	performMovement(tx, ty, function);
+	
 	//_thrown = false;
 	return true;
 }

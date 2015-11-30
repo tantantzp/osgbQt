@@ -35,6 +35,7 @@
 #include <osg/LineWidth>
 #include <osg/Camera>
 #include <osg/ComputeBoundsVisitor>
+#include <osg/DrawPixels>
 
 #include <osgViewer/Viewer>
 #include <osgViewer/CompositeViewer>
@@ -83,6 +84,7 @@ using namespace osgDB;
 
 const int ReceivesShadowTraversalMask = 0x1;
 const int CastsShadowTraversalMask = 0x2;
+const int NoShadowTraversalMask = 0x4;
 
 #pragma comment(lib, "osg.lib")
 #pragma comment(lib, "osgViewer.lib")

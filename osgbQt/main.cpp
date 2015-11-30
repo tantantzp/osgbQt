@@ -3,21 +3,27 @@
 #include "PickModelHandler.h"
 #include "osgbUtil.h"
 
+
+bool STEREO = false;
+
 Node* createLight( ) //Node* model)
 {
 	//ComputeBoundsVisitor cbbv;
 	//model->accept(cbbv);
 	//BoundingBox bb = cbbv.getBoundingBox();
-	Vec4 lightpos(0., -1000., 0., 1.);
+	Vec4 lightpos(0, -1000., 0., 1.);
 	//lightpos.set(bb.center().x(), bb.center().y(), bb.zMax() + bb.radius()*2.0f, 1.0f);
 	LightSource* ls = new LightSource();
 	ls->getLight()->setPosition(lightpos);
-	ls->getLight()->setAmbient(Vec4(0.6, 0.6, 0.6, 1.0));
+	ls->getLight()->setAmbient(Vec4(0.9, 0.9, 0.9, 1.0));
 	ls->getLight()->setDiffuse(Vec4(0.8, 0.8, 0.8, 1.0));
-	ls->getLight()->setLightNum(3);;
+	ls->getLight()->setLightNum(1);
 
 	return ls;
 }
+
+
+
 
 
 class MyViewerWidget : public QWidget
@@ -25,7 +31,7 @@ class MyViewerWidget : public QWidget
 public:
 	MyViewerWidget() : QWidget()
 	{
-		gw = createGraphicsWindow(0, 0, 500, 500);
+		gw = createGraphicsWindow(0, 0, 1000, 1000);
 		if (gw)
 		{
 			cout << "Valid GraphicsWindowQt" << endl;
@@ -47,17 +53,31 @@ public:
 		osgShadow::ShadowMap * sm = new osgShadow::ShadowMap();
 		_shadowScene->setShadowTechnique(sm);
 
+		_noShadowGroup = new Group();
+
 
 		cout << "before picker" << endl;
 		//_picker = new PickModelHandler(_collisionWorld, _root, &_viewer);
-		_picker = new PickModelHandler(_collisionWorld, _shadowScene, &_viewer);
+		_picker = new PickModelHandler(_collisionWorld, _shadowScene, &_viewer,  _noShadowGroup);
 		cout << "after picker" << endl;
+
+		//Image* tImage = osgDB::readImageFile("man.jpg");
+		//_picker->createBillboardTree(tImage);
+
+
+		//DrawPixels* bitmap1 = new DrawPixels;
+		//bitmap1->setPosition(Vec3(500., 500., -600.));
+		//bitmap1->setImage(tImage);
+		//Geode* geode = new Geode;
+		//geode->addDrawable(bitmap1);
+		//_root->addChild(geode);
+
+		//_picker->addBackground("man.jpg");
+
 
 		float widthX = 300., widthZ = 300., heightY = 150.;
 		_picker->addGround(widthX, widthZ, heightY);
 
-		Image* tImage = osgDB::readImageFile("man.jpg");
-		_picker->createBillboardTree(tImage);
 
 
 		for (int i = 0; i < 2; i++) {
@@ -96,6 +116,7 @@ public:
 		//*set scenedata
 		_shadowScene->addChild(createLight());
 		_root->addChild(_shadowScene);
+		_root->addChild(_noShadowGroup);
 		_viewer.setSceneData(_root);		
 	
 		//*BEGIN: set camera*/
@@ -105,12 +126,18 @@ public:
 		//*END: set camera */	
 		_manipulator->setPickModelHandler(_picker);
 
-		DisplaySettings *dis = new osg::DisplaySettings();
-		dis->setStereo(true);
-		float eyeSeperation = 0.01f;
-		dis->setEyeSeparation(eyeSeperation);
 
-		_viewer.setDisplaySettings(dis);
+		if (STEREO)
+		{
+			DisplaySettings *dis = new osg::DisplaySettings();
+			dis->setStereo(true);
+			float eyeSeperation = 0.01f;
+			dis->setEyeSeparation(eyeSeperation);
+			_viewer.setDisplaySettings(dis);
+		}
+
+
+
 
 		//* add event handler
 		_viewer.addEventHandler(_picker);
@@ -133,13 +160,16 @@ public:
 	void setCamera(Camera* camera){
 		const osg::GraphicsContext::Traits* traits = gw->getTraits();
 		camera->setGraphicsContext(gw);
-		camera->setClearColor(osg::Vec4(0.5, 0.5, 0.5, 1.0));
+		
+		camera->setClearColor(osg::Vec4(0.5, 0.5, 0.5, 0.0));
 		camera->setViewport(new osg::Viewport(0, 0, traits->width, traits->height));
 		camera->setProjectionMatrixAsPerspective(40., 1., 1., 50.);
+		//camera->setClearMask(GL_DEPTH_BUFFER_BIT);
 		//osgGA::TrackballManipulator* tb = new osgGA::TrackballManipulator;
 		_manipulator = new MyManipulator(&_viewer);
 		_manipulator->setHomePosition(osg::Vec3(0, -50, 500), osg::Vec3(0, 0, 250), osg::Vec3(0, -1, 0));
 		_viewer.setCameraManipulator(_manipulator);
+		//_viewer.getCamera()->getViewMatrixAsLookAt()
 	}
 
 	void addSlaveCamera()
@@ -150,6 +180,19 @@ public:
 		cameraClient->setViewport(new Viewport(0, 0, traits->width / 3, traits->height / 3));
 		_viewer.addSlave(cameraClient);
 		
+	}
+
+	void addBackground(string imgpath)
+	{
+		if (backgroundCamera.get() != NULL)
+		{
+			_root->removeChild(backgroundCamera.get());
+		}
+
+		backgroundCamera = createHUDBg(imgpath);
+		_root->addChild(backgroundCamera);
+
+
 	}
 
 	osgQt::GraphicsWindowQt* createGraphicsWindow(int x, int y, int w, int h, const std::string& name = "", bool windowDecoration = false)
@@ -182,6 +225,9 @@ protected:
 		//_bulletWorld->stepSimulation(elapsed, 3, elapsed / 3.);
 		//prevSimTime = currSimTime;
 		
+	//	addBackground("wall1.jpg");
+
+		_picker->addBackground("wall3.jpg");
 		_viewer.frame();
 	}
 
@@ -192,9 +238,13 @@ protected:
 	PickModelHandler* _picker;
 	MyManipulator* _manipulator;
 	Group* _root;
+	Group* _noShadowGroup;
 	osgShadow::ShadowedScene* _shadowScene;
 	osgQt::GraphicsWindowQt* gw;
 	double prevSimTime = 0.;
+
+	ref_ptr<Camera> backgroundCamera;
+
 };
 
 
