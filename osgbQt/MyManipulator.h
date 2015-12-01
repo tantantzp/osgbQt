@@ -17,7 +17,7 @@ class MyManipulator : public OrbitManipulator
 
 public:
 
-	MyManipulator(osgViewer::Viewer* view = NULL, int flags = DEFAULT_SETTINGS);
+	MyManipulator(osgViewer::View* view = NULL, int flags = DEFAULT_SETTINGS);
 	MyManipulator(const MyManipulator& om,
 		const osg::CopyOp& copyOp = osg::CopyOp::SHALLOW_COPY);
 
@@ -58,6 +58,11 @@ public:
 		_myHandler = handler;
 		setOrientation();
 	};
+	void setManipulator(MyManipulator* m)
+	{
+		_manipulator2 = m;
+	}
+
 
 	//osg::Vec3d _center;
 	//osg::Quat  _rotation;
@@ -65,16 +70,18 @@ public:
 
 	int _orientation;
 	PickModelHandler* _myHandler;
-	osgViewer::Viewer* _view;
+	osgViewer::View* _view;
 //	osg::ref_ptr< const osgGA::GUIEventAdapter > _ga_t1;
 //	osg::ref_ptr< const osgGA::GUIEventAdapter > _ga_t0;
 	Vec2d _oldPoint;
 	Vec2d _curPoint;
 	double _zoomFactor;
+
+	MyManipulator* _manipulator2;
 };
 
 /// Constructor.
-MyManipulator::MyManipulator(osgViewer::Viewer* view, int flags)
+MyManipulator::MyManipulator(osgViewer::View* view, int flags)
 : inherited(flags)
 {
 	setVerticalAxisFixed(false);
@@ -433,6 +440,9 @@ bool MyManipulator::handleMouseDrag(const GUIEventAdapter& ea, GUIActionAdapter&
 
 
 	performMovement(tx, ty, function);
+	_manipulator2->performCameraTranslate(-0.1, 0);
+	_manipulator2->performMovement(tx, ty, function);
+	_manipulator2->performCameraTranslate(0.1, 0);
 	//_myHandler->addBackground("wall1.jpg");
 	//_thrown = false
 
@@ -446,7 +456,7 @@ bool MyManipulator::handleMouseDrag(const GUIEventAdapter& ea, GUIActionAdapter&
 bool MyManipulator::handleMousePush(const GUIEventAdapter& ea, GUIActionAdapter& us)
 {
 	flushMouseEventStack();
-
+	_manipulator2->flushMouseEventStack();
 	float tx = ea.getXnormalized();
 	float ty = ea.getYnormalized();
 	unsigned int buttonMask = ea.getButtonMask();
@@ -458,7 +468,9 @@ bool MyManipulator::handleMousePush(const GUIEventAdapter& ea, GUIActionAdapter&
 
 
 	performMovement(tx, ty, function);
-	
+	_manipulator2->performCameraTranslate(-0.1, 0);
+	_manipulator2->performMovement(tx, ty, function);
+	_manipulator2->performCameraTranslate(0.1, 0);
 	//_thrown = false;
 	return true;
 }
@@ -477,9 +489,11 @@ bool MyManipulator::handleMouseRelease(const GUIEventAdapter& ea, GUIActionAdapt
 		function = 2;
 
 	performMovement(tx, ty, function);
-
+	_manipulator2->performCameraTranslate(-0.1, 0);
+	_manipulator2->performMovement(tx, ty, function);
+	_manipulator2->performCameraTranslate(0.1, 0);
 	flushMouseEventStack();
-
+	_manipulator2->flushMouseEventStack();
 	return true;
 }
 
@@ -499,18 +513,22 @@ bool MyManipulator::handleKeyDown(const GUIEventAdapter& ea, GUIActionAdapter& u
 	//	break;
 	case GUIEventAdapter::KEY_Up:
 		performCameraTranslate(0, -0.1);
+		_manipulator2->performCameraTranslate(0, -0.1);
 		return true;
 		break;
 	case GUIEventAdapter::KEY_Down:
 		performCameraTranslate(0, 0.1);
+		_manipulator2->performCameraTranslate(0, 0.1);
 		return true;
 		break;
 	case GUIEventAdapter::KEY_Left:
 		performCameraTranslate(0.1, 0);
+		_manipulator2->performCameraTranslate(0.1, 0);
 		return true;
 		break;
 	case GUIEventAdapter::KEY_Right:
 		performCameraTranslate(-0.1, 0);
+		_manipulator2->performCameraTranslate(-0.1, 0);
 		return true;
 		break;
 	case 'p':
@@ -588,6 +606,9 @@ bool MyManipulator::handleMouseWheel(const GUIEventAdapter& ea, GUIActionAdapter
 		case GUIEventAdapter::SCROLL_UP:
 		{
 			performCameraZoom(_zoomFactor);
+			_manipulator2->performCameraTranslate(-0.1, 0);
+			_manipulator2->performCameraZoom(_zoomFactor);
+			_manipulator2->performCameraTranslate(0.1, 0);
 			return true;
 		}
 
@@ -596,7 +617,9 @@ bool MyManipulator::handleMouseWheel(const GUIEventAdapter& ea, GUIActionAdapter
 		{
 			// perform zoom
 			performCameraZoom(-_zoomFactor);
-
+			_manipulator2->performCameraTranslate(-0.1, 0);
+			_manipulator2->performCameraZoom(-_zoomFactor);
+			_manipulator2->performCameraTranslate(0.1, 0);
 			return true;
 		}
 
