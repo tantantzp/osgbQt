@@ -101,5 +101,6 @@ const int NoShadowTraversalMask = 0x4;
 #pragma comment(lib, "qtmain.lib")
 #pragma comment(lib, "Qt5Widgets.lib")
 #pragma comment(lib, "osgbCollision.lib")
+#pragma comment(lib, "osgFX.lib")
 
 #endif

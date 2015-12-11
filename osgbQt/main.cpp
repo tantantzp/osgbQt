@@ -3,7 +3,7 @@
 #include "PickModelHandler.h"
 #include "osgbUtil.h"
 
-bool DOUBLEVIEW = true;
+bool DOUBLEVIEW = false;
 bool STEREO = false;
 
 Node* createLight( ) //Node* model)
@@ -113,7 +113,7 @@ public:
 			Vec3d pos1(0., 70., 80.);
 			_picker->addOneObj(strobj, pos);
 
-
+			
 			//for (int i = 0; i < 1; i++) {
 			//	string strobj = "D:/ProgramLib/objs/bed/bed_1.skp/bed_1.obj";
 			//	Vec3d pos(80., 0., 80.);
@@ -136,6 +136,7 @@ public:
 			//osg::Camera* camera = _viewLeft->getCamera();
 			setCamera();
 
+			_picker->addBackground("wall3.jpg", "wall3.jpg");
 
 			//*END: set camera */	
 			_manipulator->setPickModelHandler(_picker);
@@ -145,6 +146,8 @@ public:
 			{
 				DisplaySettings *dis = new osg::DisplaySettings();
 				dis->setStereo(true);
+				dis->setStereoMode(DisplaySettings::HORIZONTAL_SPLIT); // QUAD_BUFFER,
+				//dis->setStereoMode(DisplaySettings::QUAD_BUFFER); 
 				float eyeSeperation = 0.01f;
 				dis->setEyeSeparation(eyeSeperation);
 				_viewLeft->setDisplaySettings(dis);
@@ -217,7 +220,7 @@ public:
 
 		_viewRight->setCameraManipulator(_manipulator2);
 		//_manipulator->performCameraTranslate(0.1, 0);
-		_manipulator2->performCameraTranslate(0.1, 0);
+		_manipulator2->performCameraTranslate(_manipulator->_eyeDistance, 0);
 		//_manipulator2->performCameraZoom(10);
 
 		_manipulator->setManipulator(_manipulator2);
@@ -279,8 +282,15 @@ protected:
 		//prevSimTime = currSimTime;
 		
 	//	addBackground("wall1.jpg");
-
-		_picker->addBackground("wall3.jpg", "wall2.jpg");
+		_frameCount = (_frameCount + 1) % 20; 
+		if (_frameCount == 0)
+		{
+			_picker->addBackground("wall3.jpg", "wall3.jpg");
+		}
+		//else if (_frameCount == 10)
+		//{
+		//	_picker->addBackground("wall2.jpg", "wall3.jpg");
+		//}
 		_viewer.frame();
 
 	}
@@ -304,7 +314,7 @@ protected:
 	ref_ptr<osgShadow::ShadowedScene> _shadowScene;
 	osgQt::GraphicsWindowQt* gw;
 	double prevSimTime = 0.;
-
+	int _frameCount = 0;
 	ref_ptr<Camera> backgroundCamera;
 
 };
@@ -312,6 +322,11 @@ protected:
 
 int main(int argc, char** argv)
 {
+	osg::ArgumentParser arguments(&argc, argv);
+
+	arguments.getApplicationUsage()->setApplicationName(arguments.getApplicationName());
+	arguments.getApplicationUsage()->setDescription(arguments.getApplicationName() + " is the standard OpenSceneGraph example which loads and visualises 3d models.");
+	arguments.getApplicationUsage()->setCommandLineUsage(arguments.getApplicationName() + " [options] filename ...");
 	QApplication app(argc, argv);
 
    
