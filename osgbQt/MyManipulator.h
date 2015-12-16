@@ -78,6 +78,7 @@ public:
 	double _zoomFactor;
 	double _currentZoom;
 	double _maxZoom;
+	double _minZoom;
 	double _eyeDistance = 0.2;
 
 	MyManipulator* _manipulator2;
@@ -93,7 +94,8 @@ MyManipulator::MyManipulator(osgViewer::View* view, int flags)
 	_view = view;
 	_oldPoint = _curPoint = Vec2d(0., 0.);
 	_zoomFactor = 0.1;
-	_maxZoom = 1;
+	_maxZoom = 0.8;
+	_minZoom = -0.8;
 	_currentZoom = 0;
 }
 
@@ -108,7 +110,8 @@ inherited(om, copyOp)
 	_view = om._view;
 	_oldPoint = _curPoint = Vec2d(0., 0.);
 	_zoomFactor = 0.1;
-	_maxZoom = 1;
+	_maxZoom = 0.8;
+	_minZoom = -2;
 	_currentZoom = 0;
 }
 
@@ -417,7 +420,8 @@ bool  MyManipulator::performCameraRotate(const double dx, const double dy)
 {
 	// rotate camera
 	rotateWithFixedVertical(dx, dy, Vec3f(0, -1, 0));
-
+	if (_myHandler != NULL)
+	    _myHandler->setAxis();
 	return true;
 }
 
@@ -428,17 +432,22 @@ bool  MyManipulator::performCameraTranslate(const double dx, const double dy)
 	//float scale = -0.3f * _distance * getThrowScale(eventTimeDelta);
 	//panModel(dx*scale, dy*scale);
 	panModel(-dx * 100, -dy * 100);
+	//if (_myHandler != NULL)
+	//    _myHandler->setAxis();
+
 	return true;
 }
 bool MyManipulator::performCameraZoom(const double zoomFactor)
 {
-	if (_currentZoom + zoomFactor > _maxZoom || _currentZoom + zoomFactor < -_maxZoom)
+	if (_currentZoom + zoomFactor > _maxZoom || _currentZoom + zoomFactor < _minZoom)
 	{
 		cout << "zoom too far!!" << endl;
 	}
 	else
 	{
 		zoomModel(zoomFactor, true);
+		//if (_myHandler != NULL)
+		//    _myHandler->setAxis();
 		_currentZoom += zoomFactor;
 		_myHandler->addBackground();
 		_view->requestRedraw();

@@ -112,6 +112,10 @@ public:
 	void createBillboardTree(Image* image, float deep = 800.0);
 	//void createBackboard(Image* image, View* view, Group* root, float deep = 1000);
 	void createBackboard(Image* image, Image* image2, float deep = 1000);
+	void createAxis(Matrix transMatrix);
+
+	void setAxis();
+	Matrix getAxisMatrix();
 public:
 	void addGround(float widthX, float widthZ, float heightY);
 	bool addOneObj(string objPath, Vec3d initPos);
@@ -136,8 +140,8 @@ public:
 	//void addBackground(Camera* _camera);
 
 protected:
-	void createAxis(Matrix transMatrix);
-	void setAxis(Matrix transMatrix);
+
+	//void setAxis(Matrix transMatrix);
 	void hideAxis();
 	void showAxis();
 	bool doAddObj(MatrixTransform * matrixTrans, bool isDetectCollision = true);
@@ -282,8 +286,28 @@ PickModelHandler::PickModelHandler(btCollisionWorld* collisionWorld, Group* root
 }
 
 
+Matrix PickModelHandler::getAxisMatrix()
+{
+
+	float deep = 300.;
+	Vec3f eye;
+	Vec3f center;
+	Vec3f up;
+
+	_viewLeft->getCamera()->getViewMatrixAsLookAt(eye, center, up);
+	Vec3f direction = center - eye;
+	direction.normalize();
+	up.normalize();
+	Vec3f left = direction ^ up;
+	left.normalize();
+
+	Vec3f boardCenter = eye + direction * deep - left * 100 - up * 30;
+	return Matrix::translate(boardCenter);
+}
+
 void PickModelHandler::createAxis(Matrix transMatrix)
 {
+	cout << "create Axis" << endl;
 	//Matrix transMatrix = osg::Matrix::translate(-20.,0., 30.);
 	_allAxis = new MatrixTransform(transMatrix);
 	_axisVec[0] = new MatrixTransform;
@@ -326,21 +350,42 @@ void PickModelHandler::createAxis(Matrix transMatrix)
 	_allAxis->addChild(_axisVec[2]);
 	_allAxis->addChild(_axisBall); 
 	_root->addChild(_allAxis);
-
+	cout << "create Axis over" << endl;
 }
 
-void PickModelHandler::setAxis(Matrix transMatrix)
+
+void PickModelHandler::setAxis()
 {
-	if(_allAxis == NULL)
+
+	if (_allAxis == NULL)
 	{
-	 	createAxis(transMatrix);
+		
+		createAxis(getAxisMatrix());
 		return;
 	}
 	//Matrix matrix = _allAxis->getMatrix();
-	_allAxis->setMatrix(transMatrix);
 
+
+
+	//_allAxis->setMatrix(transMatrix);
+	//_allAxis->setMatrix(Matrix::translate(boardCenter));
+
+	_allAxis->setMatrix(getAxisMatrix());
 
 }
+
+//void PickModelHandler::setAxis(Matrix transMatrix)
+//{
+//	if(_allAxis == NULL)
+//	{
+//	 	createAxis(transMatrix);
+//		return;
+//	}
+//	//Matrix matrix = _allAxis->getMatrix();
+//
+//	_allAxis->setMatrix(transMatrix);
+//
+//}
 
 
 void PickModelHandler::hideAxis()
@@ -630,7 +675,7 @@ void  PickModelHandler::setOrientation(int orientation)
 	default:
 		break;
 	}
-
+	//setAxis();
 
 }
 
@@ -646,16 +691,22 @@ bool PickModelHandler::handle(const osgGA::GUIEventAdapter &ea, osgGA::GUIAction
 		int res = handlePickEvent(clickX, clickY, 0);
 		if (res == -10)
 		{
-			translateAPI(Vec3(_forwardVec * 10), 0);
+			cout << "forward:" << _forwardVec << endl;
+			Vec3 fVec(0, 0, 1);
+			translateAPI(Vec3(fVec * 10), 0);
 
 		}
 		else if (res == -11)
 		{
-			translateAPI(Vec3(_rightVec * 10), 0);
+			cout << "right:" << _rightVec << endl;
+			Vec3 rVec(-1, 0, 0);
+			translateAPI(Vec3(rVec * 10), 0);
 		}
 		else if (res == -12)
 		{
-			translateAPI(Vec3(_upVec * 10), 0);
+			cout << "up:" << _upVec << endl;
+			Vec3 uVec(0, -1, 0);
+			translateAPI(Vec3(uVec * 10), 0);
 		}
 	}
 	else if (ea.getEventType() == GUIEventAdapter::RELEASE &&
@@ -1190,7 +1241,12 @@ bool PickModelHandler::translateOneObj(MatrixTransform* model, MatrixTransform* 
 		_colState = false;
 		return false;
 	}
-	else return true;
+	else
+	{
+
+		return true;
+	}
+
 }
 bool PickModelHandler::rotateOneObj(MatrixTransform* model, MatrixTransform* box, btCollisionObject* collisionObj, Matrix rotMatrix)
 {
@@ -1345,11 +1401,11 @@ bool PickModelHandler::translateMultipleObj(Vec3d transVec, int clientNum)
 			collisionObjVec.push_back(_allCollisionObjVec[i]);
 		}
 	}
-	if (modelVec.size() < 2)
-	{
-		cout << "too few obj" << endl;
-		return false;
-	}
+	//if (modelVec.size() < 2)
+	//{
+	//	cout << "too few obj" << endl;
+	//	return false;
+	//}
 
 	if (modelVec.size() > boxVec.size() || modelVec.size() > collisionObjVec.size())
 	{
@@ -1437,7 +1493,7 @@ bool PickModelHandler::translateMultipleObj(Vec3d transVec, int clientNum)
 	}
 	else
 	{
-		cout << "mutiple tranlate success!" << endl;
+		cout << "tranlate success!!" << endl;
 		//clearAllchoose(clientNum);
 		//cout << "rechoose" << endl;
 
@@ -2257,7 +2313,8 @@ bool PickModelHandler::chooseOneMatrixTransform(int index, int clientNum)
 	{
 		MatrixTransform* model = _allModelVec[index];
 		if (model == NULL) return false;
-		bool res = chooseOneMatrixTransform(model,  clientNum);
+		bool res = chooseOneMatrixTransform(model, clientNum);
+
 		return res;
 	}
 	else
@@ -2292,7 +2349,8 @@ bool PickModelHandler::chooseOneMatrixTransformWithPush(int index, int clientNum
 	{
 		MatrixTransform* model = _allModelVec[index];
 		if (model == NULL) return false;
-		return chooseOneMatrixTransform(model,clientNum);
+		bool res = chooseOneMatrixTransform(model,clientNum);
+		return res;
 	}
 	else
 	{
@@ -2398,10 +2456,10 @@ bool PickModelHandler::chooseOneMatrixTransform(MatrixTransform* lastModel, int 
 	backBox = createBackBox();
 
 	showAxis();
-	Matrix axisMatrix = Matrix::translate(lastModel->getMatrix().getTrans());
-	axisMatrix *= Matrix::translate(_rightVec * 50 + _forwardVec * 50);
-	setAxis(axisMatrix);
-
+	//Matrix axisMatrix = Matrix::translate(lastModel->getMatrix().getTrans());
+	//axisMatrix *= Matrix::translate(_rightVec * 50 + _forwardVec * 50);
+	//setAxis(axisMatrix);
+	setAxis();
 	return true;
 }
 
@@ -2478,6 +2536,14 @@ int  PickModelHandler::handlePickEvent(float clickX, float clickY, int clientNum
 							pushToHistory();
 							
 							chooseOneMatrixTransform(idx, clientNum);
+							for (int i = 0; i < _allSelectIndexVec.size(); i++) {
+								if (_allSelectIndexVec[i] == clientNum)
+								{
+									_allSelectBoxVec[i]->setNodeMask(0);
+									_allSelectIndexVec[i] = -1;
+									chooseOneMatrixTransform(i, clientNum);
+								}
+							}
 							//pushToHistory();
 							//popFromHistory();
 							foundFlag = true;
@@ -2720,15 +2786,15 @@ void  PickModelHandler::translateAPI(Vec3 transVec, int clientNum)
 	}
 	pushToHistory();
 
-	if (sNum == 1)
-	{
-		for (int i = 0; i < tmp; i++) 
-		{
-			if (_allSelectIndexVec[i] == clientNum)
-			    translateOneObj(_allModelVec[i], _allSelectBoxVec[i], _allCollisionObjVec[i], transVec);
-		}
-	}
-	else
+	//if (sNum == 1)
+	//{
+	//	for (int i = 0; i < tmp; i++) 
+	//	{
+	//		if (_allSelectIndexVec[i] == clientNum)
+	//		    translateOneObj(_allModelVec[i], _allSelectBoxVec[i], _allCollisionObjVec[i], transVec);
+	//	}
+	//}
+	//else
 	{
 		translateMultipleObj(transVec, clientNum);
 	}
@@ -2740,10 +2806,6 @@ void  PickModelHandler::translateAPI(Vec3 transVec, int clientNum)
 	//	//translateOneObj(_lastModelVec[i], _selectionBoxVec[i], _selectCollisionObjVec[i], transVec);
 	//}
 }
-
-
-
-
 void  PickModelHandler::rotateAPI(Matrix rotMatrix, int clientNum)
 {
 	int tmp = _allModelVec.size();

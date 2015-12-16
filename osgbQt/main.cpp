@@ -334,5 +334,6 @@ int main(int argc, char** argv)
 
 	widget->setGeometry(100, 100, 800, 600);
 	widget->show();
+	widget->showFullScreen();
 	return app.exec();
 }
