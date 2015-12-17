@@ -75,7 +75,7 @@
 #include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QApplication>
 #include <osgQt/GraphicsWindowQt>
-
+#include <osgViewer/api/Win32/GraphicsWindowWin32>
 
 using namespace std;
 using namespace osg;

@@ -2,9 +2,13 @@
 #include "MyManipulator.h"
 #include "PickModelHandler.h"
 #include "osgbUtil.h"
+#include <osgViewer/api/Win32/GraphicsWindowWin32>
 
 bool DOUBLEVIEW = false;
 bool STEREO = true;
+bool ISWIN = true;
+bool ISQUAD = false;
+
 
 Node* createLight( ) //Node* model)
 {
@@ -28,15 +32,18 @@ class MyViewerWidget : public QWidget
 public:
 	MyViewerWidget() : QWidget()
 	{
-		gw = createGraphicsWindow(0, 0, 1000, 1000);
-		if (gw)
+		if (!ISWIN)
 		{
-			cout << "Valid GraphicsWindowQt" << endl;
-			QVBoxLayout* layout = new QVBoxLayout;
-			layout->addWidget(gw->getGLWidget());
-			setLayout(layout);
-		}
 
+			gw = createGraphicsWindow(0, 0, 1000, 1000);
+			if (gw)
+			{
+				cout << "Valid GraphicsWindowQt" << endl;
+				QVBoxLayout* layout = new QVBoxLayout;
+				layout->addWidget(gw->getGLWidget());
+				setLayout(layout);
+			}
+		}
 
 		_collisionWorld = initCollision();
 		_root = new osg::Group;
@@ -111,14 +118,19 @@ public:
 
 			if (STEREO)
 			{
-				DisplaySettings *dis = new osg::DisplaySettings();
-				dis->setStereo(true);
+				//DisplaySettings *dis = new osg::DisplaySettings();
+				_displaySetting = new osg::DisplaySettings();
+				
+				_displaySetting->setStereo(true);
 				//dis->setStereoMode(DisplaySettings::HORIZONTAL_SPLIT); // QUAD_BUFFER,
-				//dis->setStereoMode(DisplaySettings::QUAD_BUFFER); 
-				float eyeSeperation = 0.01f;
-				dis->setEyeSeparation(eyeSeperation);
-				_viewLeft->setDisplaySettings(dis);
-				_viewRight->setDisplaySettings(dis);
+				if (ISQUAD)
+				    _displaySetting->setStereoMode(DisplaySettings::QUAD_BUFFER);
+
+				//float eyeSeperation = 0.01f;
+				//_displaySetting->setEyeSeparation(eyeSeperation);
+
+				_viewLeft->setDisplaySettings(_displaySetting);
+				_viewRight->setDisplaySettings(_displaySetting);
 			}
 
 			//* add event handler
@@ -126,17 +138,35 @@ public:
 			_viewRight->addEventHandler(_picker);
 
 		}
-
-
 		// Use single thread here to avoid known issues under Linux
-		_viewer.setThreadingModel(osgViewer::Viewer::SingleThreaded);
+		//_viewer.setThreadingModel(osgViewer::Viewer::SingleThreaded);
 		_viewLeft->setThreadingModel(osgViewer::Viewer::SingleThreaded);
 		_viewRight->setThreadingModel(osgViewer::Viewer::SingleThreaded);
 
-		connect(&_timer, SIGNAL(timeout()), this, SLOT(repaint()));
-		connect(&_timer, SIGNAL(timeout()), this, SLOT(update()));
+		if (ISWIN)
+		{
+			//_viewer.realize();
+			//_viewer.getWindows(_windows);
 
-		_timer.start(40);
+			_viewLeft->realize();
+			_viewLeft->getWindows(_windows);
+
+			_pWin = dynamic_cast<osgViewer::GraphicsWindowWin32*>(_windows[0]);
+			_pWin->setWindowRectangleImplementation(0, 0, width(), height());
+			_isFirstFrame = true;
+			startTimer(20);
+		}
+		else
+		{
+			connect(&_timer, SIGNAL(timeout()), this, SLOT(repaint()));
+			connect(&_timer, SIGNAL(timeout()), this, SLOT(update()));
+			_timer.start(40);
+
+		}
+
+
+
+
 	}
 	~MyViewerWidget()
 	{
@@ -146,19 +176,23 @@ public:
 	void setCamera()
 	{
 		osg::Camera* camera = _viewLeft->getCamera();
-		const osg::GraphicsContext::Traits* traits = gw->getTraits();
-		camera->setGraphicsContext(gw);
-		
 		camera->setClearColor(osg::Vec4(0.5, 0.5, 0.5, 0.0));
+		
+		if (!ISWIN)
+		{
+			camera->setGraphicsContext(gw);
+			const osg::GraphicsContext::Traits* traits = gw->getTraits();
+		
+			if (DOUBLEVIEW)
+			{
+				camera->setViewport(new osg::Viewport(0, 0, traits->width / 2, traits->height));
+			}
+			else
+			{
+				camera->setViewport(new osg::Viewport(0, 0, traits->width, traits->height));
+			}
+		}
 
-		if (DOUBLEVIEW)
-		{
-			camera->setViewport(new osg::Viewport(0, 0, traits->width / 2, traits->height));
-		}
-		else
-		{
-			camera->setViewport(new osg::Viewport(0, 0, traits->width, traits->height));
-		}
 		camera->setProjectionMatrixAsPerspective(40., 1., 1., 50.);
 
 		_manipulator = new MyManipulator(_viewLeft);
@@ -169,16 +203,21 @@ public:
 
 		osg::Camera* camera2 = _viewRight->getCamera();
 	
-		camera2->setGraphicsContext(gw);
+
 
 		camera2->setClearColor(osg::Vec4(0.5, 0.5, 0.5, 0.0));
-		if (DOUBLEVIEW)
+		if (!ISWIN)
 		{
-			camera2->setViewport(new osg::Viewport(traits->width / 2, 0, traits->width / 2, traits->height));
-		}
-		else
-		{
-			camera2->setViewport(new osg::Viewport(0, 0, 10, 10));
+			const osg::GraphicsContext::Traits* traits = gw->getTraits();
+			camera2->setGraphicsContext(gw);
+			if (DOUBLEVIEW)
+			{
+				camera2->setViewport(new osg::Viewport(traits->width / 2, 0, traits->width / 2, traits->height));
+			}
+			else
+			{
+				camera2->setViewport(new osg::Viewport(0, 0, 10, 10));
+			}
 		}
 		camera2->setProjectionMatrixAsPerspective(40., 1., 1., 50.);
 
@@ -232,6 +271,46 @@ public:
 	}
 
 protected:
+
+	void timerEvent(QTimerEvent *event)
+	{
+		if (ISWIN)
+		{
+			if (_isFirstFrame == true)
+			{
+
+
+			
+
+				//::SetParent(_pWin->getHWND(), winId());
+				::SetParent(_pWin->getHWND(), HWND());
+				//_viewer.frame();
+				_viewLeft->frame();
+
+				_displaySetting->setStereo(false);
+
+				_isFirstFrame = false;
+
+			}
+
+			//_viewer.frame();
+			_frameCount = (_frameCount + 1) % 20;
+			if (_frameCount == 0)
+			{
+				_picker->addBackground("wall3.jpg", "wall3.jpg");
+			}
+			_viewLeft->frame();
+		}
+	}
+
+	void resizeEvent(QResizeEvent * event)
+	{
+		if (ISWIN)
+		{
+			_pWin->setWindowRectangleImplementation(0, 0, width(), height());
+		}
+	}
+
 	virtual void paintEvent(QPaintEvent* event)
 	{
 
@@ -267,6 +346,11 @@ protected:
 	double prevSimTime = 0.;
 	int _frameCount = 0;
 	ref_ptr<Camera> backgroundCamera;
+	ref_ptr<osg::DisplaySettings>       _displaySetting;
+
+	osgViewer::GraphicsWindowWin32*     _pWin;
+	osgViewer::ViewerBase::Windows      _windows;
+	bool                               _isFirstFrame;
 
 };
 
