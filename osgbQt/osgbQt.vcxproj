@@ -91,6 +91,11 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="main2.cpp" />
     <ClCompile Include="main3.cpp" />
+    <ClCompile Include="main4.cpp" />
+    <ClCompile Include="MyManipulator.cpp" />
+    <ClCompile Include="MyViewerWidget.cpp" />
+    <ClCompile Include="osgbUtil.cpp" />
+    <ClCompile Include="PickModelHandler.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="osgbqt.ui">
@@ -108,6 +113,7 @@
     <ClInclude Include="CommonFunctions.h" />
     <ClInclude Include="GeneratedFiles\ui_osgbqt.h" />
     <ClInclude Include="MyManipulator.h" />
+    <ClInclude Include="MyViewerWidget.h" />
     <ClInclude Include="osgbUtil.h" />
     <ClInclude Include="PickModelHandler.h" />
     <ClInclude Include="ShakeManipulator.h" />
