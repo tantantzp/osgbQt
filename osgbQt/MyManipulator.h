@@ -83,9 +83,11 @@ public:
 	double _currentZoom;
 	double _maxZoom;
 	double _eyeDistance = 0.2;
-	int isRotate = 0;
+	int _isRotate = 0;
 	float _myDx = 0.;
 	float _myDy = 0.;
+
+	int _isTranslate = 0;
 	MyManipulator* _manipulator2;
 };
 

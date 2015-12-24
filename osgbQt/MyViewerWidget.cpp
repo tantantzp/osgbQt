@@ -298,7 +298,7 @@ void MyViewerWidget::myFrame()
 	//_viewer.frame();
 
 	bool flag = false;
-	if (_manipulator->isRotate > 0)
+	if (_manipulator->_isRotate > 0 )
 	{
 		float dx = _manipulator->_myDx;
 		float dy = _manipulator->_myDy;
@@ -330,35 +330,34 @@ void MyViewerWidget::myFrame()
 		_picker->setAxis();
 		_picker->addBackground("wall3.jpg", "wall3.jpg");
 
-		_manipulator->isRotate = 0;
+		_manipulator->_isRotate = 0;
+		flag = true;
+	}
+	if (_manipulator->_isTranslate > 0)
+	{
+		float dx = _manipulator->_myDx;
+		float dy = _manipulator->_myDy;
+		_manipulator->performCameraTranslate(dx, dy);
+
+		_manipulator->setOrientation();
+		_picker->setAxis();
+		_picker->addBackground("wall3.jpg", "wall3.jpg");
+
+		_manipulator->_isTranslate = 0;
 		flag = true;
 	}
 
 
-
 	_viewLeft->frame();
-	if (flag)
-	{
-		//_manipulator->setOrientation();
-		//_picker->setAxis();
-		//_picker->addBackground("wall3.jpg", "wall3.jpg");
-	}
 
-
-
+	
 	_frameCount = (_frameCount + 1) % 2;
 	if (_frameCount == 0)
 	{
 		_picker->setBackgroundImg("wall3.jpg", "wall3.jpg");
 	}
-	//_picker->setAxis();
-	//_picker->addBackground("wall3.jpg", "wall3.jpg");
-	if (_manipulator->isRotate)
-	{
 
-		//_manipulator->performCameraRotate(-0.05, 0.);
-		//_manipulator->setOrientation();
-	}
+
 }
 osgQt::GraphicsWindowQt* MyViewerWidget::createGraphicsWindow(int x, int y, int w, int h, const std::string& name, bool windowDecoration)
 {

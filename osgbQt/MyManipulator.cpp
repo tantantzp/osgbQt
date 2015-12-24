@@ -251,22 +251,26 @@ bool MyManipulator::performMovement(float tx, float ty, int function)
 			if (abs(dx) > abs(dy))
 			{
 				if (dx > 0)
-				    isRotate = 1;
-				else isRotate = 2;
+				    _isRotate = 1;
+				else _isRotate = 2;
 			}
 			else
 			{
 				if (dy > 0)
-					isRotate = 3;
-				else isRotate = 4;
+					_isRotate = 3;
+				else _isRotate = 4;
 			}
 
 			ret = true;
 		}
 		else if (function == 2)
 		{
-			ret = performCameraTranslate(dx, dy);
+			//ret = performCameraTranslate(dx, dy);
+			_myDx = dx * 3;
+			_myDy = dy * 3;
 
+			_isTranslate = 1;
+			ret = true;
 		}
 	}
 
@@ -505,24 +509,11 @@ bool MyManipulator::handleKeyDown(const GUIEventAdapter& ea, GUIActionAdapter& u
 		break;
 	case 'p':
 	case 'P':
-		//cout << "P::" << endl;
-		if (isRotate == 0)
-		{
-			isRotate = 1;
-		}
-		else isRotate = 0;
+		cout << "P::" << endl;
+
 		return true;
 		break;
-	case 'o':
-	case 'O':
-		//cout << "P::" << endl;
-		if (isRotate == 0)
-		{
-			isRotate = 2;
-		}
-		else isRotate = 0;
-		return true;
-		break;
+
 		//performCameraRotate(0.05f, 0.0);
 		
 		//Vec3d tvec1 = _rotation * Vec3d(1., 0., 0.);
