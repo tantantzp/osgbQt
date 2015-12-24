@@ -1,9 +1,23 @@
 #include "MyViewerWidget.h"
 
-bool DOUBLEVIEW = false;
-bool STEREO = true;
-bool ISWIN = false;
-//bool ISQUAD = false;
+#ifdef DEF_DOUBLEVIEW
+    bool DOUBLEVIEW = true;
+#else
+    bool DOUBLEVIEW = false;
+#endif
+
+#ifdef DEF_STEREO
+	bool STEREO = true;
+#else
+	bool STEREO = false;
+#endif
+	
+#ifdef DEF_ISWIN
+	bool ISWIN = true;
+#else
+	bool ISWIN = false;
+#endif
+
 
 
 
@@ -121,7 +135,7 @@ QGLWidget()
 		setCamera();
 
 		//_picker->addBackground("wall3.jpg", "wall3.jpg");
-
+		_picker->addBackground("wall3.jpg", "wall3.jpg");
 
 		_manipulator->setPickModelHandler(_picker);
 		_manipulator2->setPickModelHandler(_picker);
@@ -207,7 +221,7 @@ void MyViewerWidget::setCamera()
 	camera->setProjectionMatrixAsPerspective(40., 1., 1., 50.);
 
 	_manipulator = new MyManipulator(_viewLeft);
-	_manipulator->setHomePosition(osg::Vec3(0, -50, 500), osg::Vec3(0, 0, 0), osg::Vec3(0, -1, 0));
+	_manipulator->setHomePosition(osg::Vec3(0, 0, 500), osg::Vec3(0, 0, 0), osg::Vec3(0, -1, 0));
 
 	_viewLeft->setCameraManipulator(_manipulator);
 
@@ -233,7 +247,7 @@ void MyViewerWidget::setCamera()
 	camera2->setProjectionMatrixAsPerspective(40., 1., 1., 50.);
 
 	_manipulator2 = new MyManipulator(_viewRight);
-	_manipulator2->setHomePosition(osg::Vec3(0, -50, 500), osg::Vec3(0, 0, 0), osg::Vec3(0, -1, 0));
+	_manipulator2->setHomePosition(osg::Vec3(0, 0, 500), osg::Vec3(0, 0, 0), osg::Vec3(0, -1, 0));
 
 	_viewRight->setCameraManipulator(_manipulator2);
 	_manipulator2->performCameraTranslate(_manipulator->_eyeDistance, 0);
@@ -266,6 +280,86 @@ void MyViewerWidget::addBackground(string imgpath)
 
 }
 
+void MyViewerWidget::myFrame()
+{
+	//_frameCount = (_frameCount + 1) % 20;
+	//if (_frameCount == 0)
+	//{
+	//float t = rand() % 10;
+	//
+	//float mov = 0.01;
+	//if (t > 3)
+	//{
+	//	mov = 0.;
+	//}
+	//_manipulator->performCameraRotate(mov, 0.);
+	//_manipulator->setOrientation();
+	//}
+	//_viewer.frame();
+
+	bool flag = false;
+	if (_manipulator->isRotate > 0)
+	{
+		float dx = _manipulator->_myDx;
+		float dy = _manipulator->_myDy;
+		_manipulator->performCameraRotate(dx, dy);
+		////_manipulator->isRotate = false;
+		//if (_manipulator->isRotate =
+		//	_manipulator->performCameraRotate(0.05, 0.);
+		//}
+		//if (_manipulator->isRotate == 2)
+		//{
+		//	//for (int i = 0; i < 100; i++)
+		//	_manipulator->performCameraRotate(-0.05, 0.);
+		//}
+
+		//if (_manipulator->isRotate == 3)
+		//{
+		//	//for (int i = 0; i < 100; i++)
+		//	_manipulator->performCameraRotate(0., 0.05);
+		//}
+		//if (_manipulator->isRotate == 4)
+		//{
+		//	//for (int i = 0; i < 100; i++)
+		//	_manipulator->performCameraRotate(0., -0.05);
+		//}
+		//// _manipulator->performCameraRotate(-0.05, 0.);
+
+
+		_manipulator->setOrientation();
+		_picker->setAxis();
+		_picker->addBackground("wall3.jpg", "wall3.jpg");
+
+		_manipulator->isRotate = 0;
+		flag = true;
+	}
+
+
+
+	_viewLeft->frame();
+	if (flag)
+	{
+		//_manipulator->setOrientation();
+		//_picker->setAxis();
+		//_picker->addBackground("wall3.jpg", "wall3.jpg");
+	}
+
+
+
+	_frameCount = (_frameCount + 1) % 2;
+	if (_frameCount == 0)
+	{
+		_picker->setBackgroundImg("wall3.jpg", "wall3.jpg");
+	}
+	//_picker->setAxis();
+	//_picker->addBackground("wall3.jpg", "wall3.jpg");
+	if (_manipulator->isRotate)
+	{
+
+		//_manipulator->performCameraRotate(-0.05, 0.);
+		//_manipulator->setOrientation();
+	}
+}
 osgQt::GraphicsWindowQt* MyViewerWidget::createGraphicsWindow(int x, int y, int w, int h, const std::string& name, bool windowDecoration)
 {
 	osg::DisplaySettings* ds = osg::DisplaySettings::instance().get();
@@ -408,28 +502,17 @@ void MyViewerWidget::timerEvent(QTimerEvent *event)
 	{
 		if (_isFirstFrame == true)
 		{
-
-
-
-
 			//::SetParent(_pWin->getHWND(), winId());
 			::SetParent(_pWin->getHWND(), HWND());
 			//_viewer.frame();
 			_viewLeft->frame();
-
 			_displaySetting->setStereo(false);
 
 			_isFirstFrame = false;
-
 		}
 
 		//_viewer.frame();
-		_frameCount = (_frameCount + 1) % 20;
-		if (_frameCount == 0)
-		{
-			_picker->addBackground("wall3.jpg", "wall3.jpg");
-		}
-		_viewLeft->frame();
+		myFrame();
 	}
 }
 
@@ -437,27 +520,22 @@ void MyViewerWidget::timerEvent(QTimerEvent *event)
 #ifdef QUAD_WINDOW_EMBEDDED
 void MyViewerWidget::paintGL()
 {
-	_frameCount = (_frameCount + 1) % 20;
-	if (_frameCount == 0)
-	{
-		_picker->addBackground("wall3.jpg", "wall3.jpg");
-	}
+	myFrame();
 
-	//_viewer.frame();
-	_viewLeft->frame();
 }
 #else
 void MyViewerWidget::paintEvent(QPaintEvent* event)
 {
+	myFrame();
+	//_frameCount = (_frameCount + 1) % 20;
+	//if (_frameCount == 0)
+	//{
+	//	_picker->setAxis();
+	//	_picker->addBackground("wall3.jpg", "wall3.jpg");
+	//}
 
-	_frameCount = (_frameCount + 1) % 20;
-	if (_frameCount == 0)
-	{
-		_picker->addBackground("wall3.jpg", "wall3.jpg");
-	}
-
-	//_viewer.frame();
-	_viewLeft->frame();
+	////_viewer.frame();
+	//_viewLeft->frame();
 }
 #endif
 

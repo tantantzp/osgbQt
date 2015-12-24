@@ -32,6 +32,11 @@ inherited(om, copyOp)
 	_maxZoom = 1;
 	_currentZoom = 0;
 }
+void MyManipulator::setCameraMatrix()
+{
+	_myHandler->setCameraMatrix(getMatrix());
+
+}
 
 int MyManipulator::setOrientation()
 {
@@ -239,11 +244,29 @@ bool MyManipulator::performMovement(float tx, float ty, int function)
 			ret = false;
 		if (function == 1)
 		{
-			ret = performCameraRotate(dx, dy);
+			//ret = performCameraRotate(dx, dy);
+			_myDx = dx * 3;
+			_myDy = dy * 3;
+
+			if (abs(dx) > abs(dy))
+			{
+				if (dx > 0)
+				    isRotate = 1;
+				else isRotate = 2;
+			}
+			else
+			{
+				if (dy > 0)
+					isRotate = 3;
+				else isRotate = 4;
+			}
+
+			ret = true;
 		}
 		else if (function == 2)
 		{
 			ret = performCameraTranslate(dx, dy);
+
 		}
 	}
 
@@ -251,7 +274,7 @@ bool MyManipulator::performMovement(float tx, float ty, int function)
 	if (ret)
 	{
 		//cout << "add back" << endl;
-		_myHandler->addBackground();
+		//_myHandler->addBackground();
 		_view->requestRedraw();
 		//_myHandler->addBackground("wall3.jpg", "wall2.jpg");
 	}
@@ -337,8 +360,13 @@ void MyManipulator::rotateWithFixedVertical(const float dx, const float dy, cons
 bool  MyManipulator::performCameraRotate(const double dx, const double dy)
 {
 	// rotate camera
-	rotateWithFixedVertical(dx, dy, Vec3f(0, -1, 0));
 
+	rotateWithFixedVertical(dx, dy, Vec3f(0, -1, 0));
+	//if (dx > 0.)
+	//    rotateWithFixedVertical(0.05, 0., Vec3f(0, -1, 0));
+	//else
+	//	rotateWithFixedVertical(-0.05, 0., Vec3f(0, -1, 0));
+	//_myHandler->addBackground("wall3.jpg", "wall3.jpg");
 	return true;
 }
 
@@ -477,19 +505,37 @@ bool MyManipulator::handleKeyDown(const GUIEventAdapter& ea, GUIActionAdapter& u
 		break;
 	case 'p':
 	case 'P':
-		cout << "P::" << endl;
-
-		Vec3d tvec1 = _rotation * Vec3d(1., 0., 0.);
-		double tx = tvec1.x();
-		double tz = tvec1.z();
-		if (abs(tx) > abs(tz)) {
-			if (tx > 0) cout << "+X" << endl;
-			else cout << "-X" << endl;
+		//cout << "P::" << endl;
+		if (isRotate == 0)
+		{
+			isRotate = 1;
 		}
-		else {
-			if (tz > 0) cout << "+Z" << endl;
-			else cout << "-Z" << endl;
+		else isRotate = 0;
+		return true;
+		break;
+	case 'o':
+	case 'O':
+		//cout << "P::" << endl;
+		if (isRotate == 0)
+		{
+			isRotate = 2;
 		}
+		else isRotate = 0;
+		return true;
+		break;
+		//performCameraRotate(0.05f, 0.0);
+		
+		//Vec3d tvec1 = _rotation * Vec3d(1., 0., 0.);
+		//double tx = tvec1.x();
+		//double tz = tvec1.z();
+		//if (abs(tx) > abs(tz)) {
+		//	if (tx > 0) cout << "+X" << endl;
+		//	else cout << "-X" << endl;
+		//}
+		//else {
+		//	if (tz > 0) cout << "+Z" << endl;
+		//	else cout << "-Z" << endl;
+		//}
 
 
 

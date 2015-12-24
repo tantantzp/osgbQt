@@ -140,12 +140,16 @@ PickModelHandler::PickModelHandler(btCollisionWorld* collisionWorld, Group* root
 Matrix PickModelHandler::getAxisMatrix()
 {
 
-	float deep = 500.;
+	float deep = 400.;
 	Vec3f eye;
 	Vec3f center;
 	Vec3f up;
 
-	_viewLeft->getCamera()->getViewMatrixAsLookAt(eye, center, up);
+	//_viewLeft->getCamera()->getViewMatrixAsLookAt(eye, center, up);
+	MyManipulator* tmp = (MyManipulator*)_viewLeft->getCameraManipulator();
+	Matrix im = tmp->getInverseMatrix();
+	im.getLookAt(eye, center, up);
+
 	Vec3f direction = center - eye;
 	direction.normalize();
 	up.normalize();
@@ -252,12 +256,14 @@ void PickModelHandler::hideAxis()
 }
 void PickModelHandler::showAxis()
 {
+#ifdef DEF_AXIS
 	if (_allAxis == NULL)
 	{
 		cout << "no axis to show" << endl;
 		return;
 	}
 	_allAxis->setNodeMask(0x2);
+#endif
 }
 
 void PickModelHandler::updateCameraVec()
@@ -276,20 +282,67 @@ void PickModelHandler::updateCameraVec()
 
 	return;
 }
+void PickModelHandler::setCameraMatrix(Matrix m)
+{
+	cameraMatrix = m;
+}
+
+void PickModelHandler::setBackboardImg(Image* image, Image* image2)
+{
+	if (geoBackboardLeft.get() != NULL)
+	{
+		ref_ptr<Geometry> geometry = (Geometry*)geoBackboardLeft->getDrawable(0);
+		
+		if (image)
+		{
+			ref_ptr<Texture2D> texture = new Texture2D();
+			texture->setWrap(Texture2D::WRAP_S, Texture2D::REPEAT);
+			texture->setWrap(Texture2D::WRAP_T, Texture2D::REPEAT);
+			texture->setImage(image);
+
+			ref_ptr<StateSet> stateset = new osg::StateSet();
+			stateset->setTextureAttributeAndModes(0, texture, StateAttribute::ON);
+			//stateset->setMode(GL_BLEND, StateAttribute::OFF);
+			stateset->setMode(GL_LIGHTING, StateAttribute::OFF);
+
+			geometry->setStateSet(stateset.get());
+		}
+	}
+	else
+	{
+		cout << "backboard == NULL" << endl;
+	}
+
+	
+}
 
 void PickModelHandler::createBackboard(Image* image, Image* image2, float deep)
 {
-	float tDeep = deep;
+	float tDeep = deep ;
 	float tHeigth = 900;
 	float tWidth = 1400;
 	Vec3f eye;
 	Vec3f center;
 	Vec3f up;
+	
+	//cameraMatrix.getLookAt(eye, center, up);
+	//_viewLeft->getCameraManipulator()->getMatrix().getLookAt(eye, center, up);
 
-	_viewLeft->getCamera()->getViewMatrixAsLookAt(eye, center, up);
+	MyManipulator* tmp = (MyManipulator*)_viewLeft->getCameraManipulator();
+
+	Matrix im = tmp->getInverseMatrix();
+	im.getLookAt(eye, center, up);
+	//_viewLeft->getCamera()->getViewMatrixAsLookAt(eye, center, up);
+
+
 	Vec3f direction = center - eye;
 	direction.normalize();
+	//Vec3f direction(0.0, 0.0, -1.0);
 	up.normalize();
+
+
+	//cout << eye << " " << center << " " << up << endl;
+
 	Vec3f left = direction ^ up;
 	left.normalize();
 
@@ -301,6 +354,9 @@ void PickModelHandler::createBackboard(Image* image, Image* image2, float deep)
 	Vec3f point3 = boardCenter - up * tHeigth - left * tWidth;
 	Vec3f point4 = boardCenter - up * tHeigth + left * tWidth;
 	ref_ptr<Geometry> geometry = new Geometry();
+
+
+	//cout <<"boardCenter"<< boardCenter << endl;
 
 	ref_ptr<Vec3Array> v = new Vec3Array();
 	v->push_back(point1);
@@ -562,9 +618,9 @@ bool PickModelHandler::handle(const osgGA::GUIEventAdapter &ea, osgGA::GUIAction
 			translateAPI(Vec3(uVec * 10), 0);
 		}
 	}
-	else if (ea.getEventType() == GUIEventAdapter::RELEASE &&
-		ea.getButton() == GUIEventAdapter::RIGHT_MOUSE_BUTTON &&
-		(ea.getModKeyMask() & GUIEventAdapter::MODKEY_CTRL))
+	else if (ea.getEventType() == GUIEventAdapter::DOUBLECLICK &&
+		ea.getButton() == GUIEventAdapter::RIGHT_MOUSE_BUTTON /*&&
+		(ea.getModKeyMask() & GUIEventAdapter::MODKEY_CTRL)*/)
 	{
 		float clickX = ea.getX(), clickY = ea.getY();
 
@@ -2901,6 +2957,14 @@ void PickModelHandler::addBackground()
 {
 
 	createBackboard(tImageL.get(), tImageR.get(), 2000.0);
+}
+void PickModelHandler::setBackgroundImg(string imageLeft, string imageRight)
+{
+	_imageLeft = imageLeft;
+	_imageRight = imageRight;
+	tImageL = osgDB::readImageFile(imageLeft);
+	tImageR = osgDB::readImageFile(imageRight);
+	setBackboardImg(tImageL.get(), tImageR.get());
 }
 
 //void PickModelHandler::addBackground(Camera* _camera)

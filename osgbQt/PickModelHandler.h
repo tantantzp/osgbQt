@@ -35,6 +35,8 @@ public:
 	void createBillboardTree(Image* image, float deep = 800.0);
 	//void createBackboard(Image* image, View* view, Group* root, float deep = 1000);
 	void createBackboard(Image* image, Image* image2, float deep = 1000);
+	void setBackboardImg(Image* image, Image* image2);
+
 
 	Matrix PickModelHandler::getAxisMatrix();
 	void PickModelHandler::createAxis(Matrix transMatrix);
@@ -42,6 +44,7 @@ public:
 	void PickModelHandler::hideAxis();
 	void PickModelHandler::showAxis();
 
+	void setCameraMatrix(Matrix m);
 public:
 	void addGround(float widthX, float widthZ, float heightY);
 	bool addOneObj(string objPath, Vec3d initPos);
@@ -64,6 +67,7 @@ public:
 	bool chooseAPI(int index, int clientNum);  //use the index returned by calling pickAPI function to choose an object
 	void addBackground(string imageLeft, string imageRight);
 	void addBackground();
+	void setBackgroundImg(string imageLeft, string imageRight);
 	//void addBackground(Camera* _camera);
 
 protected:
@@ -156,6 +160,10 @@ protected:
 		ref_ptr<MatrixTransform> _allAxis;
 		ref_ptr<MatrixTransform> _axisVec[3];  //x, y, x
 		ref_ptr<MatrixTransform> _axisBall;
+
+
+		//camera matrix
+		Matrix cameraMatrix;
 };
 
 #endif

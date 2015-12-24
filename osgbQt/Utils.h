@@ -86,6 +86,18 @@ const int ReceivesShadowTraversalMask = 0x1;
 const int CastsShadowTraversalMask = 0x2;
 const int NoShadowTraversalMask = 0x4;
 
+//#define DEF_DOUBLEVIEW
+
+
+//#define QUAD_BUFFER_TEST
+//#define QUAD_WINDOW_EMBEDDED
+//#define DEF_STEREO
+//#define DEF_ISWIN
+
+#define DEF_AXIS
+
+
+
 #pragma comment(lib, "osg.lib")
 #pragma comment(lib, "osgViewer.lib")
 #pragma comment(lib, "osgText.lib")

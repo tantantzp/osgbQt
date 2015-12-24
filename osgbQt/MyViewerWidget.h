@@ -11,8 +11,7 @@
 //#include "CmConsoleWindow.h"
 #include <osgViewer/api/Win32/GraphicsWindowWin32>
 
-//#define QUAD_BUFFER_TEST
-//#define QUAD_WINDOW_EMBEDDED
+
 
 
 Node* createLight();//Node* model)
@@ -35,7 +34,7 @@ public:
 	//}
 
 	void addBackground(string imgpath);
-
+	void myFrame();
 	osgQt::GraphicsWindowQt* createGraphicsWindow(int x, int y, int w, int h, const std::string& name = "", bool windowDecoration = false);
 
 #ifdef QUAD_WINDOW_EMBEDDED

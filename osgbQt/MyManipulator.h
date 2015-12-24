@@ -34,6 +34,7 @@ public:
 	virtual bool handle(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us);
 
 public:
+	void setCameraMatrix();
 
 	virtual bool handleResize(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us);
 	virtual bool handleMouseMove(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us);
@@ -82,7 +83,9 @@ public:
 	double _currentZoom;
 	double _maxZoom;
 	double _eyeDistance = 0.2;
-
+	int isRotate = 0;
+	float _myDx = 0.;
+	float _myDy = 0.;
 	MyManipulator* _manipulator2;
 };
 
