@@ -86,12 +86,17 @@ const int ReceivesShadowTraversalMask = 0x1;
 const int CastsShadowTraversalMask = 0x2;
 const int NoShadowTraversalMask = 0x4;
 
+const int NodeMaskLeft = 0x8;
+const int NodeMaskRight = 0x10;
+const int CameraMaskLeft = 0xB;
+const int CameraMaskRight = 0x13;
 //#define DEF_DOUBLEVIEW
 
 
 //#define QUAD_BUFFER_TEST
 //#define QUAD_WINDOW_EMBEDDED
-//#define DEF_STEREO
+
+#define DEF_STEREO
 //#define DEF_ISWIN
 
 #define DEF_AXIS

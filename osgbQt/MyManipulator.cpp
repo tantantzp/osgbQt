@@ -14,7 +14,7 @@ MyManipulator::MyManipulator(osgViewer::View* view, int flags)
 	_view = view;
 	_oldPoint = _curPoint = Vec2d(0., 0.);
 	_zoomFactor = 0.1;
-	_maxZoom = 1;
+	_maxZoom = 0.6;
 	_currentZoom = 0;
 }
 
@@ -29,7 +29,7 @@ inherited(om, copyOp)
 	_view = om._view;
 	_oldPoint = _curPoint = Vec2d(0., 0.);
 	_zoomFactor = 0.1;
-	_maxZoom = 1;
+	_maxZoom = 0.6;
 	_currentZoom = 0;
 }
 void MyManipulator::setCameraMatrix()
@@ -385,7 +385,8 @@ bool  MyManipulator::performCameraTranslate(const double dx, const double dy)
 }
 bool MyManipulator::performCameraZoom(const double zoomFactor)
 {
-	if (_currentZoom + zoomFactor > _maxZoom || _currentZoom + zoomFactor < -_maxZoom)
+	//cout <<"_currentZoom"<< _currentZoom << endl;
+	if (_currentZoom + zoomFactor > _maxZoom || _currentZoom + zoomFactor < (-_maxZoom * 2))
 	{
 		cout << "zoom too far!!" << endl;
 	}
