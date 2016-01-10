@@ -307,6 +307,23 @@ void PickModelHandler::setBackboardImg(Image* image, Image* image2)
 
 			geometry->setStateSet(stateset.get());
 		}
+
+		ref_ptr<Geometry> geometry2 = (Geometry*)geoBackboardRight->getDrawable(0);
+
+		if (image2)
+		{
+			ref_ptr<Texture2D> texture = new Texture2D();
+			texture->setWrap(Texture2D::WRAP_S, Texture2D::REPEAT);
+			texture->setWrap(Texture2D::WRAP_T, Texture2D::REPEAT);
+			texture->setImage(image2);
+
+			ref_ptr<StateSet> stateset = new osg::StateSet();
+			stateset->setTextureAttributeAndModes(0, texture, StateAttribute::ON);
+			//stateset->setMode(GL_BLEND, StateAttribute::OFF);
+			stateset->setMode(GL_LIGHTING, StateAttribute::OFF);
+
+			geometry2->setStateSet(stateset.get());
+		}
 	}
 	else
 	{
@@ -395,12 +412,14 @@ void PickModelHandler::createBackboard(Image* image, Image* image2, float deep)
 
 	if (geoBackboardLeft.get() != NULL)
 	{
-		//root->removeChild(geoBackboard.get());
+		
 		_rootLeft->removeChild(geoBackboardLeft.get());
 	}
 	geoBackboardLeft = new Geode();
 	geoBackboardLeft->addDrawable(geometry.get());
-	geoBackboardLeft->setNodeMask(0x1);
+	//geoBackboardLeft->setNodeMask(0x1);
+	geoBackboardLeft->setNodeMask(NodeMaskLeft);
+
 	_rootLeft->addChild(geoBackboardLeft.get());
 
 	//_viewRight->getCamera()->getViewMatrixAsLookAt(eye, center, up);
@@ -414,12 +433,7 @@ void PickModelHandler::createBackboard(Image* image, Image* image2, float deep)
 	//point2 = boardCenter + up * tHeigth - left * tWidth;
 	//point3 = boardCenter - up * tHeigth - left * tWidth;
 	//point4 = boardCenter - up * tHeigth + left * tWidth;
-	double offset = 50;
 
-	point1.x() += offset;
-	point2.x() += offset;
-	point3.x() += offset;
-	point4.x() += offset;
 	ref_ptr<Geometry> geometry2 = new Geometry();
 
 	ref_ptr<Vec3Array> v2 = new Vec3Array();
@@ -450,12 +464,12 @@ void PickModelHandler::createBackboard(Image* image, Image* image2, float deep)
 	if (geoBackboardRight.get() != NULL)
 	{
 		//root->removeChild(geoBackboard.get());
-		_rootRight->removeChild(geoBackboardRight.get());
+		_rootLeft->removeChild(geoBackboardRight.get());
 	}
 	geoBackboardRight = new Geode();
 	geoBackboardRight->addDrawable(geometry2.get());
-	geoBackboardRight->setNodeMask(0x1);
-	_rootRight->addChild(geoBackboardRight.get());
+	geoBackboardRight->setNodeMask(NodeMaskRight);
+	_rootLeft->addChild(geoBackboardRight.get());
 }
 
 
@@ -597,7 +611,8 @@ bool PickModelHandler::handle(const osgGA::GUIEventAdapter &ea, osgGA::GUIAction
 	{
 		float clickX = ea.getX(), clickY = ea.getY();
 
-		int res = handlePickEvent(clickX, clickY, 0);
+		//int res = handlePickEvent(clickX, clickY, 0);
+		int res = pickAPI(clickX, clickY, 0);
 		if (res == -10)
 		{
 			cout << "forward:" << _forwardVec << endl;
@@ -746,6 +761,10 @@ bool  PickModelHandler::doAddObj(MatrixTransform * trans, bool isDetectCollision
 	//transMatrix.getTrans();
 
 	btBoxObject->setWorldTransform(osgbCollision::asBtTransform(transMatrix));
+	
+	
+
+	
 	_collisionWorld->addCollisionObject(btBoxObject);
 
 	this->insertObjPair(trans, btBoxObject);
@@ -797,7 +816,25 @@ bool  PickModelHandler::doAddObj(MatrixTransform * trans, bool isDetectCollision
 			_allCollisionObjVec.push_back(btBoxObject);
 			_allSelectBoxVec.push_back(NULL);
 			_allSelectIndexVec.push_back(-1);
+
 			//_allNum++;
+
+
+			BoundingSphere bb = model->getBound();
+			cout << "bb.radius" << bb.radius() << endl;
+			if (bb.radius() < 15)
+			{
+				cout << "obj too small! scale bigger" << endl;
+				float scaleFactor = 15.0 / bb.radius();
+				scaleOneObj(trans, NULL, btBoxObject, Vec3d(scaleFactor, scaleFactor, scaleFactor));
+			}
+			if (bb.radius() > 50)
+			{
+				cout << "obj too big! scale smaller" << endl;
+				float scaleFactor = 50.0 / bb.radius();
+				scaleOneObj(trans, NULL, btBoxObject, Vec3d(scaleFactor, scaleFactor, scaleFactor));
+			}
+
 
 			//cout << "all model num: " << _allNum << endl;
 			cout << "all model vec size:" << _allModelVec.size() << " " << _allCollisionObjVec.size() << endl;
@@ -809,6 +846,8 @@ bool  PickModelHandler::doAddObj(MatrixTransform * trans, bool isDetectCollision
 		_allModelVec.push_back(trans);
 		_allCollisionObjVec.push_back(btBoxObject);
 		//_allNum++;
+
+
 
 		//cout << "all model num: " << _allNum << endl;
 		cout << "all model vec size:" << _allModelVec.size() << " " << _allCollisionObjVec.size() << endl;
@@ -826,6 +865,9 @@ bool PickModelHandler::addOneObj(string objPath, Vec3d initPos){
 		return false;
 
 	}
+
+	
+
 	Matrix transMatrix = osg::Matrix::translate(initPos.x(), initPos.y(), initPos.z());
 	ref_ptr<MatrixTransform> trans = new MatrixTransform(transMatrix);
 	trans->addChild(model.get());
@@ -1227,16 +1269,19 @@ bool PickModelHandler::rotateOneObj(MatrixTransform* model, MatrixTransform* box
 }
 bool PickModelHandler::scaleOneObj(MatrixTransform* model, MatrixTransform* box, btCollisionObject* collisionObj, Vec3d scaleVec)
 {
-	if (model == NULL || collisionObj == NULL || box == NULL) {
+	if (model == NULL || collisionObj == NULL ) {
 		return false;
 	}
 	Matrix oriMatrix = model->getMatrix();
-	Matrix oriSmatrix = box->getMatrix();
+	Matrix oriSmatrix, smatrix;
+	if (box!=NULL)
+	    oriSmatrix = box->getMatrix();
 	btTransform oriBtTrans = collisionObj->getWorldTransform();
 	btVector3 oriBtScale = collisionObj->getCollisionShape()->getLocalScaling();
 
 	Matrix matrix = model->getMatrix();
-	Matrix smatrix = box->getMatrix();
+	if (box != NULL)
+	   smatrix = box->getMatrix();
 	btTransform btTrans = collisionObj->getWorldTransform();
 	btVector3 btScale = collisionObj->getCollisionShape()->getLocalScaling();
 	
@@ -1270,7 +1315,8 @@ bool PickModelHandler::scaleOneObj(MatrixTransform* model, MatrixTransform* box,
 	else 
 	{
 		model->setMatrix(matrix);
-		box->setMatrix(smatrix);
+		if (box != NULL)
+		    box->setMatrix(smatrix);
 		collisionObj->getCollisionShape()->setLocalScaling(tscaleVec);
 		collisionObj->setWorldTransform(btTrans);
 		_collisionWorld->updateSingleAabb(collisionObj);
@@ -1281,7 +1327,8 @@ bool PickModelHandler::scaleOneObj(MatrixTransform* model, MatrixTransform* box,
 		if (_colState == true)
 		{
 			model->setMatrix(oriMatrix);
-			box->setMatrix(oriSmatrix);
+			if (box != NULL)
+			    box->setMatrix(oriSmatrix);
 
 			cout << "unscale" << endl;
 			collisionObj->getCollisionShape()->setLocalScaling(oriBtScale);
@@ -2392,16 +2439,16 @@ int  PickModelHandler::handlePickEvent(float clickX, float clickY, int clientNum
 	//osgViewer::Viewer *viewer = dynamic_cast<osgViewer::Viewer *>(&aa);
 	//osgViewer::View *viewer = _viewLeft;
 	//osgViewer::View *viewer = _viewLeft;
-	if (_viewLeft && _viewRight)
+	if (_viewLeft )//&& _viewRight)
 	{
 
 		ref_ptr<osgUtil::LineSegmentIntersector> intersector =
 			new osgUtil::LineSegmentIntersector(osgUtil::Intersector::WINDOW, clickX, clickY);//ea.getX(), ea.getY());
 		osgUtil::IntersectionVisitor iv(intersector.get());
-		iv.setTraversalMask(~0x1);    //avoid choosing the Node Mask
+		iv.setTraversalMask(~0x1 & ~NodeMaskLeft & ~NodeMaskRight );    //avoid choosing the Node Mask
 		//viewer->getCamera()->accept(iv);
 		_viewLeft->getCamera()->accept(iv);
-		_viewRight->getCamera()->accept(iv);
+		//_viewRight->getCamera()->accept(iv);
 
 		// update last selected model.
 		if (intersector->containsIntersections())
@@ -2493,15 +2540,9 @@ int  PickModelHandler::handlePickEvent(float clickX, float clickY, int clientNum
 		else
 		{
 			cout << "choose nothing" << endl;
-			pushToHistory();
-			chooseOneMatrixTransform(-1, clientNum);
-			//clearAllchoose();
-			//_selectNum = 0;
-			//for (int i = 0; i < _selectionBoxVec.size(); i++) {
-			//	_selectionBoxVec[i]->setNodeMask(0); //hide all the box
-			//}
-			//_lastModelVec.clear();
-			//_selectCollisionObjVec.clear();
+			//pushToHistory();
+			//chooseOneMatrixTransform(-1, clientNum);
+
 			return -1;
 		}
 	}
@@ -2577,39 +2618,39 @@ void PickModelHandler::handleKeyEvent(const osgGA::GUIEventAdapter &ea, osgGA::G
 		case 'd':
 		case 'D':  //right
 			transVec = _rightVec * _transStep;
-			transVec = _cameraRightVec * _transStep;
+			//transVec = _cameraRightVec * _transStep;
 			isTranslate = true;
 
 			break;
 		case 'a':
 		case 'A':
 			transVec = _leftVec * _transStep;
-			transVec = -_cameraRightVec * _transStep;
+			//transVec = -_cameraRightVec * _transStep;
 			isTranslate = true;
 			break;
 	   //move along y(up/down)
 		case 'w':
 		case 'W':
 			transVec = _upVec * _transStep;
-			transVec = _cameraUpVec * _transStep;
+			//transVec = _cameraUpVec * _transStep;
 			isTranslate = true;
 			break;
 		case 's':
 		case 'S':
 			transVec = _downVec * _transStep;
-			transVec = -_cameraUpVec * _transStep;
+			//transVec = -_cameraUpVec * _transStep;
 			isTranslate = true;
 			break;
 		case 'x':
 		case 'X':
 			transVec = _forwardVec * _transStep;
-			transVec = _cameraForwardVec * _transStep;
+			//transVec = _cameraForwardVec * _transStep;
 			isTranslate = true;
 			break;
 		case 'c':
 		case 'C':
 			transVec = _backwardVec * _transStep;
-			transVec = -_cameraForwardVec * _transStep;
+			//transVec = -_cameraForwardVec * _transStep;
 			isTranslate = true;
 			break;
 		case 'u':  //duplicate
@@ -2933,8 +2974,27 @@ int PickModelHandler::getSelectNumAPI(int clientNum)
 }
 int PickModelHandler::pickAPI(float clickX, float clickY, int clientNum)
 {
-	
-	return handlePickEvent(clickX, clickY, clientNum);
+	int res = -1;
+	//cout << clickX << " "<< clickY << endl;
+	float step = 10.f;
+	float step2 = 20.f;
+	float detx[13] = { 0.f, 0.0f, step, 0.0f, -step, step, step, -step, -step, 0.0f, step2, 0.0f, -step2, };
+	float dety[13] = { 0.f, step, 0.0f, -step, 0.0f, step, -step, step, -step, step2, 0.0f, -step2, 0.0f, };
+	for (int i = 0; i < 13; i++)
+	{
+		float cX = clickX + detx[i], cY = clickY + dety[i];
+		res = handlePickEvent(cX, cY, clientNum);
+		if (res != -1)
+			break;
+	}
+
+
+	if (res == -1)
+	{
+		pushToHistory();
+		chooseOneMatrixTransform(-1, clientNum);
+	}
+	return res;
 }
 bool PickModelHandler::chooseAPI(int index, int clientNum)
 {
