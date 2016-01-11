@@ -134,6 +134,9 @@ QGLWidget()
 
 		setCamera();
 
+		//cv::Mat img1 = cv::imread("wall2.jpg");
+		//cv::Mat img2 = cv::imread("wall3.jpg");
+		//_picker->addBackground(img1, img2);
 		_picker->addBackground("wall3.jpg", "wall2.jpg");
 
 		_manipulator->setPickModelHandler(_picker);
@@ -282,7 +285,10 @@ void MyViewerWidget::addBackground(string imgpath)
 
 
 }
-
+void MyViewerWidget::updateBackground(cv::Mat& img1, cv::Mat& img2)
+{
+	_picker->addBackground(img1, img2);
+}
 void MyViewerWidget::myFrame()
 {
 	//_frameCount = (_frameCount + 1) % 20;
@@ -310,7 +316,7 @@ void MyViewerWidget::myFrame()
 		_manipulator->setOrientation();
 		_picker->setAxis();
 
-		//_picker->addBackground("wall3.jpg", "wall2.jpg");
+
 		_picker->addBackground();
 		_manipulator->_isRotate = 0;
 
@@ -319,15 +325,25 @@ void MyViewerWidget::myFrame()
 
 	_viewLeft->frame();
 
-	
+
+	// update background textures.
 	_frameCount = (_frameCount + 1) % 2;
 	if (_frameCount == 0)
 	{
-		_picker->setBackgroundImg("wall3.jpg", "wall2.jpg");
+
+		//cv::Mat img1 = cv::imread("wall2.jpg");
+		//cv::Mat img2 = cv::imread("wall3.jpg");
+		//cv::imwrite("cvout.jpg", img1);
+		//cv::imwrite("cvout2.jpg", img2);
+		//_picker->addBackground(img1, img2);
+		//_picker->addBackground();
+		//_picker->addBackground("wall3.jpg", "wall2.jpg");
+		//_picker->setBackgroundImg("cvout.jpg", "cvout2.jpg");
 	}
 
-
 }
+
+
 osgQt::GraphicsWindowQt* MyViewerWidget::createGraphicsWindow(int x, int y, int w, int h, const std::string& name, bool windowDecoration)
 {
 	osg::DisplaySettings* ds = osg::DisplaySettings::instance().get();

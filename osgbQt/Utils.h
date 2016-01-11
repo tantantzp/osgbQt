@@ -2,6 +2,7 @@
 #define UTILS_H
 
 #include <iostream>
+#include <iomanip>
 #include <cstdlib>
 #include <map>
 #include <string>
@@ -41,6 +42,7 @@
 #include <osgViewer/CompositeViewer>
 #include <osgViewer/ViewerEventHandlers>
 #include <osgDB/ReadFile>
+#include <osgDB/WriteFile>
 #include <osgGA/TrackballManipulator>
 #include <osgGA/GUIEventHandler>
 #include <osgGA/TrackballManipulator>
@@ -77,14 +79,26 @@
 #include <osgQt/GraphicsWindowQt>
 #include <osgViewer/api/Win32/GraphicsWindowWin32>
 
+
+#include <opencv2/opencv.hpp>
+
 using namespace std;
 using namespace osg;
 using namespace osgGA;
 using namespace osgDB;
+//using namespace cv;
+
+const int MODELSIZEMIN = 15;  //auto scaling when load the obj, if the radius of obj < MODELSIZEMIN, scale to MODELSIZEMIN
+const int MODELSIZEMAX = 40;
+
+const float PICKRANGE = 10.;  //pixel
 
 const int ReceivesShadowTraversalMask = 0x1;
 const int CastsShadowTraversalMask = 0x2;
 const int NoShadowTraversalMask = 0x4;
+
+const int ChooseBoxMask = 0x2;
+const int AxisMask = 0x2;
 
 const int NodeMaskLeft = 0x8;
 const int NodeMaskRight = 0x10;
@@ -97,9 +111,10 @@ const int CameraMaskRight = 0x13;
 //#define QUAD_WINDOW_EMBEDDED
 
 #define DEF_STEREO
+
 //#define DEF_ISWIN
 
-#define DEF_AXIS
+//#define DEF_AXIS
 
 
 

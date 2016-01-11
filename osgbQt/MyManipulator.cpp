@@ -385,19 +385,20 @@ bool  MyManipulator::performCameraTranslate(const double dx, const double dy)
 }
 bool MyManipulator::performCameraZoom(const double zoomFactor)
 {
-	//cout <<"_currentZoom"<< _currentZoom << endl;
-	if (_currentZoom + zoomFactor > _maxZoom || _currentZoom + zoomFactor < (-_maxZoom * 2))
-	{
-		cout << "zoom too far!!" << endl;
-	}
-	else
-	{
+
+	//if (_currentZoom + zoomFactor > _maxZoom || _currentZoom + zoomFactor < (-_maxZoom))
+	//{
+	//	cout << "zoom too far!!" << endl;
+	//}
+	//else
+	//{
 		zoomModel(zoomFactor, true);
 		_currentZoom += zoomFactor;
 		_myHandler->addBackground();
 		_view->requestRedraw();
 		_view->requestContinuousUpdate(false);
-	}
+	//}	
+	//cout << "_currentZoom" << _currentZoom << endl;
 
 	return true;
 }
@@ -588,9 +589,9 @@ bool MyManipulator::handleMouseWheel(const GUIEventAdapter& ea, GUIActionAdapter
 	case GUIEventAdapter::SCROLL_UP:
 	{
 									   performCameraZoom(_zoomFactor);
-									   _manipulator2->performCameraTranslate(-_eyeDistance, 0);
-									   _manipulator2->performCameraZoom(_zoomFactor);
-									   _manipulator2->performCameraTranslate(_eyeDistance, 0);
+									   //_manipulator2->performCameraTranslate(-_eyeDistance, 0);
+									   //_manipulator2->performCameraZoom(_zoomFactor);
+									   //_manipulator2->performCameraTranslate(_eyeDistance, 0);
 									   return true;
 	}
 
@@ -599,9 +600,9 @@ bool MyManipulator::handleMouseWheel(const GUIEventAdapter& ea, GUIActionAdapter
 	{
 										 // perform zoom
 										 performCameraZoom(-_zoomFactor);
-										 _manipulator2->performCameraTranslate(-_eyeDistance, 0);
-										 _manipulator2->performCameraZoom(-_zoomFactor);
-										 _manipulator2->performCameraTranslate(_eyeDistance, 0);
+										// _manipulator2->performCameraTranslate(-_eyeDistance, 0);
+										// _manipulator2->performCameraZoom(-_zoomFactor);
+										// _manipulator2->performCameraTranslate(_eyeDistance, 0);
 										 return true;
 	}
 

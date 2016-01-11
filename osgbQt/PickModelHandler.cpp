@@ -7,6 +7,39 @@ float degreeToPie(float degree)
 	return res;
 }
 
+
+Image* mat2image(cv::Mat &cvimg)
+{
+	// 
+	//cvtColor(cvimg, cvimg, CV_BGR2RGB);
+	//cv::flip(cvimg, cvimg, 0);
+
+	ref_ptr<osg::Image> osgframe = new osg::Image;
+	osgframe->setAllocationMode(osg::Image::USE_NEW_DELETE);
+	osgframe->setInternalTextureFormat(GL_RGB);
+	osgframe->allocateImage(cvimg.cols, cvimg.rows, 3, GL_RGB, GL_UNSIGNED_BYTE);
+
+	unsigned char *pSrc = cvimg.data;
+	unsigned char *pDst = osgframe->data();
+
+	int cvMatRowStride = cvimg.step[0];
+	int osgImgRowStride = osgframe->getRowSizeInBytes();
+	//int osgImgRowStride = osgframe->getRowStepInBytes();
+	int validRowLength = cvimg.cols * 3;
+
+	for (size_t r = 0; r < cvimg.rows; r++)
+	{
+		pSrc += cvMatRowStride;
+		pDst += osgImgRowStride;
+
+		memcpy(pDst, pSrc, validRowLength);
+	}
+	
+	return osgframe.release();
+}
+
+
+
 StateSet* createTextureState(Image* img)
 {
 	StateSet* stateset;
@@ -19,7 +52,11 @@ StateSet* createTextureState(Image* img)
 		//texture->setFilter(Texture::MIN_FILTER, Texture::LINEAR);
 		//texture->setFilter(Texture::MAG_FILTER, Texture::NEAREST);
 
+		texture->setTextureSize(0, 0);
+		//texture->setInternalFormat(GL_BGR);
+
 		texture->setImage(img);
+
 		//TexGen* texgen = new TexGen;
 		//texgen->setMode(TexGen::OBJECT_LINEAR);
 		//texgen->setMode(TexGen::SPHERE_MAP);
@@ -50,7 +87,7 @@ osg::Camera* createHUDBg(std::string imagePath){
 
 	osg::ref_ptr<osg::Geometry>gm = new osg::Geometry;
 
-	//���붥��
+
 	osg::ref_ptr<osg::Vec3Array>vertex = new osg::Vec3Array;
 	vertex->push_back(osg::Vec3(0, 0, 0));
 	vertex->push_back(osg::Vec3(800, 0, 0));
@@ -58,9 +95,9 @@ osg::Camera* createHUDBg(std::string imagePath){
 	vertex->push_back(osg::Vec3(0, 600, 0));
 	gm->setVertexArray(vertex);
 
-	//ѹ�뷨��
 
-	//��������
+
+
 	osg::ref_ptr<osg::Vec2Array>coord = new osg::Vec2Array;
 	coord->push_back(osg::Vec2(0, 0));
 	coord->push_back(osg::Vec2(1, 0));
@@ -262,7 +299,7 @@ void PickModelHandler::showAxis()
 		cout << "no axis to show" << endl;
 		return;
 	}
-	_allAxis->setNodeMask(0x2);
+	_allAxis->setNodeMask(AxisMask);
 #endif
 }
 
@@ -822,13 +859,14 @@ bool  PickModelHandler::doAddObj(MatrixTransform * trans, bool isDetectCollision
 
 			BoundingSphere bb = model->getBound();
 			cout << "bb.radius" << bb.radius() << endl;
-			if (bb.radius() < 15)
+			//if (bb.radius() < 15)
+			if (bb.radius() < MODELSIZEMIN)
 			{
 				cout << "obj too small! scale bigger" << endl;
 				float scaleFactor = 15.0 / bb.radius();
 				scaleOneObj(trans, NULL, btBoxObject, Vec3d(scaleFactor, scaleFactor, scaleFactor));
 			}
-			if (bb.radius() > 50)
+			if (bb.radius() > MODELSIZEMAX)
 			{
 				cout << "obj too big! scale smaller" << endl;
 				float scaleFactor = 50.0 / bb.radius();
@@ -2405,8 +2443,9 @@ bool PickModelHandler::chooseOneMatrixTransform(MatrixTransform* lastModel, int 
 	mat *= lastModel->getMatrix();
 
 	ref_ptr<MatrixTransform> tbox = getOrCreateSelectionBox(index, clientNum);
-	tbox->setNodeMask(0x1);
-	tbox->setMatrix(mat);\
+	tbox->setNodeMask(ChooseBoxMask);
+
+	tbox->setMatrix(mat);
 	if (backBox.get() != NULL)
 		_root->removeChild(backBox);
 	backBox = createBackBox();
@@ -2976,8 +3015,8 @@ int PickModelHandler::pickAPI(float clickX, float clickY, int clientNum)
 {
 	int res = -1;
 	//cout << clickX << " "<< clickY << endl;
-	float step = 10.f;
-	float step2 = 20.f;
+	float step = PICKRANGE;
+	float step2 = PICKRANGE * 2;
 	float detx[13] = { 0.f, 0.0f, step, 0.0f, -step, step, step, -step, -step, 0.0f, step2, 0.0f, -step2, };
 	float dety[13] = { 0.f, step, 0.0f, -step, 0.0f, step, -step, step, -step, step2, 0.0f, -step2, 0.0f, };
 	for (int i = 0; i < 13; i++)
@@ -3001,10 +3040,34 @@ bool PickModelHandler::chooseAPI(int index, int clientNum)
 	
 	return chooseOneMatrixTransformWithPush(index, clientNum);
 }
+
+void PickModelHandler::addBackground(cv::Mat &imageLeft, cv::Mat &imageRight)
+{
+	//_imageLeft 
+	//_imageRight = mat2image(imageRight);
+
+	//ref_ptr<Image> timg = osgDB::readImageFile("wall2.jpg");
+	//cout <<hex<< timg->getInternalTextureFormat() << endl;
+	//cout << hex << timg->getPixelFormat() << endl;
+	//cout << hex << timg->getDataType() << endl;
+	//cout << hex << timg->getAllocationMode() << endl;
+
+	//_matL = imageLeft;
+	//_matR = imageRight;
+
+	tImageL = mat2image(imageLeft);
+	tImageR = mat2image(imageRight);
+	//writeImageFile(*tImageL, "osgframe.bmp");
+	//writeImageFile(*tImageR, "osgframe2.bmp");
+
+	createBackboard(tImageL.get(), tImageR.get(), 2000.0);
+}
+
 void PickModelHandler::addBackground(string imageLeft, string imageRight)
 {
 	_imageLeft = imageLeft;
-	_imageRight = imageRight;
+	_imageRight = imageRight;	
+
 	tImageL = osgDB::readImageFile(imageLeft);
 	tImageR = osgDB::readImageFile(imageRight);
 	//createBillboardTree(tImage.get(), 800.0);
@@ -3015,7 +3078,6 @@ void PickModelHandler::addBackground(string imageLeft, string imageRight)
 
 void PickModelHandler::addBackground()
 {
-
 	createBackboard(tImageL.get(), tImageR.get(), 2000.0);
 }
 void PickModelHandler::setBackgroundImg(string imageLeft, string imageRight)

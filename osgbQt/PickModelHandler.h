@@ -68,6 +68,7 @@ public:
 	void addBackground(string imageLeft, string imageRight);
 	void addBackground();
 	void setBackgroundImg(string imageLeft, string imageRight);
+	void addBackground(cv::Mat &imageLeft, cv::Mat &imageRight);
 	//void addBackground(Camera* _camera);
 
 protected:
@@ -148,6 +149,8 @@ protected:
 		string _imageRight;
 		ref_ptr<Image> tImageL;
 		ref_ptr<Image> tImageR;
+		cv::Mat _matL;
+		cv::Mat _matR;
 	
 		ref_ptr<Billboard> backBoard;
 		ref_ptr<Geode> geoBackboardLeft;
