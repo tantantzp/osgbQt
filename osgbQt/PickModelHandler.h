@@ -34,7 +34,7 @@ public:
 	void setOrientation(int orientation);
 	void createBillboardTree(Image* image, float deep = 800.0);
 	//void createBackboard(Image* image, View* view, Group* root, float deep = 1000);
-	void createBackboard(Image* image, Image* image2, float deep = 1000);
+	void createBackboard(Image* image, Image* image2, float widht = 720., float height = 1280., float deep = 800., float eyeDis = 5.);
 	void setBackboardImg(Image* image, Image* image2);
 
 
@@ -70,6 +70,10 @@ public:
 	void setBackgroundImg(string imageLeft, string imageRight);
 	void addBackground(cv::Mat &imageLeft, cv::Mat &imageRight);
 	//void addBackground(Camera* _camera);
+
+	void scaleRoom(double scaleX, double scaleY, double scaleZ);
+
+	                                                          
 
 protected:
 
@@ -127,13 +131,13 @@ protected:
 	
 	
 		double _lastX, _lastY;
-		double _groundWidthX, _groundWidthZ, _groundHeightY;
+
 		bool _colState;
 		float _transStep;
 		bool _hasGround;
 		//unsigned int _selectNum;
 	
-		Geode* wallBox[6];
+
 	
 	
 	
@@ -167,6 +171,16 @@ protected:
 
 		//camera matrix
 		Matrix cameraMatrix;
+
+		//room
+		float _roomScaleFactor;
+		float _roomDistance;
+		float _roomWidthX, _roomWidthZ, _roomHeightY;
+	//	double _groundWidthX, _groundWidthZ, _groundHeightY;
+		ref_ptr<Geode> wallBox[6];
+		ref_ptr<MatrixTransform> _roomTrans;
+		btCompoundShape* _cs;
+		btCollisionObject* _btground;
 };
 
 #endif

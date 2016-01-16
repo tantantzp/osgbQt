@@ -104,9 +104,17 @@ const int NodeMaskLeft = 0x8;
 const int NodeMaskRight = 0x10;
 const int CameraMaskLeft = 0xB;
 const int CameraMaskRight = 0x13;
+
+static float BACKGROUNDWIDTH = 720.;
+static float BACKGROUNDHEIGHT = 1280.;
+static float BACKGROUNDDEEP = 2200.;
+static float BACKGROUNDEYEDIS = 10.;
+
+
+
+
+
 //#define DEF_DOUBLEVIEW
-
-
 //#define QUAD_BUFFER_TEST
 //#define QUAD_WINDOW_EMBEDDED
 
