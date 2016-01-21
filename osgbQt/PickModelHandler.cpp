@@ -7,6 +7,39 @@ float degreeToPie(float degree)
 	return res;
 }
 
+
+Image* mat2image(cv::Mat &cvimg)
+{
+	// 
+	cvtColor(cvimg, cvimg, CV_BGR2RGB);
+	//cv::flip(cvimg, cvimg, 0);
+
+	ref_ptr<osg::Image> osgframe = new osg::Image;
+	osgframe->setAllocationMode(osg::Image::USE_NEW_DELETE);
+	osgframe->setInternalTextureFormat(GL_RGB);
+	osgframe->allocateImage(cvimg.cols, cvimg.rows, 3, GL_RGB, GL_UNSIGNED_BYTE);
+
+	unsigned char *pSrc = cvimg.data;
+	unsigned char *pDst = osgframe->data();
+
+	int cvMatRowStride = cvimg.step[0];
+	int osgImgRowStride = osgframe->getRowSizeInBytes();
+	//int osgImgRowStride = osgframe->getRowStepInBytes();
+	int validRowLength = cvimg.cols * 3;
+
+	for (size_t r = 0; r < cvimg.rows; r++)
+	{
+		pSrc += cvMatRowStride;
+		pDst += osgImgRowStride;
+
+		memcpy(pDst, pSrc, validRowLength);
+	}
+
+	return osgframe.release();
+}
+
+
+
 StateSet* createTextureState(Image* img)
 {
 	StateSet* stateset;
@@ -31,6 +64,10 @@ StateSet* createTextureState(Image* img)
 		//stateset->setTextureAttributeAndModes(0, texgen, StateAttribute::ON);
 		//stateset->setTextureMode(0, GL_TEXTURE_GEN_S, StateAttribute::ON | StateAttribute::OVERRIDE);
 		//stateset->setTextureMode(0, GL_TEXTURE_GEN_T, StateAttribute::ON | StateAttribute::OVERRIDE);
+		
+		ref_ptr<Material> mat = new Material;
+		mat->setAmbient(Material::FRONT, Vec4(5., 5., 5., 1.));
+		stateset->setAttribute(mat.get());
 	}
 	return stateset;
 }
@@ -118,9 +155,6 @@ PickModelHandler::PickModelHandler(btCollisionWorld* collisionWorld, Group* root
 	_hasGround = false;
 	_transStep = 10.0f;
 
-	_groundWidthX = 0;
-	_groundWidthZ = 0;
-	_groundHeightY = 0;
 	_orientation = 0;
 
 	_leftVec = Vec3d(-1., 0., 0.);
@@ -130,6 +164,15 @@ PickModelHandler::PickModelHandler(btCollisionWorld* collisionWorld, Group* root
 	_upVec = Vec3d(0., -1., 0.);
 	_downVec = Vec3d(0., 1., 0.);
 	_forwardDegree = 90.;
+
+
+	//scale room
+	_roomScaleFactor = 1.f;
+	_roomDistance = 600.f;
+	_roomWidthX = 300.;
+	_roomWidthZ = 300.;
+	_roomHeightY = 150.;
+
 
 	//_noShadowGroup = noShadow;
 	Matrix transMatrix = osg::Matrix::translate(100., 0., 80.);
@@ -207,8 +250,6 @@ void PickModelHandler::createAxis(Matrix transMatrix)
 	_root->addChild(_allAxis);
 	cout << "create Axis over" << endl;
 }
-
-
 void PickModelHandler::setAxis()
 {
 
@@ -272,7 +313,11 @@ void PickModelHandler::updateCameraVec()
 	Vec3f eye;
 	Vec3f center;
 	Vec3f up;
-	_viewLeft->getCamera()->getViewMatrixAsLookAt(eye, center, up);
+	//_viewLeft->getCamera()->getViewMatrixAsLookAt(eye, center, up);
+	MyManipulator* tmp = (MyManipulator*)_viewLeft->getCameraManipulator();
+	Matrix im = tmp->getInverseMatrix();
+	im.getLookAt(eye, center, up);
+
 	_cameraForwardVec = center - eye;
 	_cameraForwardVec.normalize();
 	_cameraUpVec = up;
@@ -333,11 +378,12 @@ void PickModelHandler::setBackboardImg(Image* image, Image* image2)
 	
 }
 
-void PickModelHandler::createBackboard(Image* image, Image* image2, float deep)
+void PickModelHandler::createBackboard(Image* image, Image* image2, float width, float height, float deep, float eyeDis)
 {
 	float tDeep = deep ;
-	float tHeigth = 900;
-	float tWidth = 1400;
+	float tHeigth = width;
+	float tWidth = height;
+	float tEyeDis = eyeDis;
 	Vec3f eye;
 	Vec3f center;
 	Vec3f up;
@@ -364,7 +410,11 @@ void PickModelHandler::createBackboard(Image* image, Image* image2, float deep)
 	left.normalize();
 
 	Vec3f boardCenter = eye + direction * deep;
+	Vec3f boxCenter = eye + direction * 500;
 
+	if (backBox.get() != NULL)
+		_root->removeChild(backBox);
+	backBox = createBackBox(boxCenter);
 
 	Vec3f point1 = boardCenter + up * tHeigth + left * tWidth;
 	Vec3f point2 = boardCenter + up * tHeigth - left * tWidth;
@@ -434,6 +484,12 @@ void PickModelHandler::createBackboard(Image* image, Image* image2, float deep)
 	//point3 = boardCenter - up * tHeigth - left * tWidth;
 	//point4 = boardCenter - up * tHeigth + left * tWidth;
 
+	point1 = boardCenter + up * tHeigth + left * tWidth - left * tEyeDis;
+	point2 = boardCenter + up * tHeigth - left * tWidth - left * tEyeDis;
+	point3 = boardCenter - up * tHeigth - left * tWidth - left * tEyeDis;
+	point4 = boardCenter - up * tHeigth + left * tWidth - left * tEyeDis;
+
+
 	ref_ptr<Geometry> geometry2 = new Geometry();
 
 	ref_ptr<Vec3Array> v2 = new Vec3Array();
@@ -471,7 +527,6 @@ void PickModelHandler::createBackboard(Image* image, Image* image2, float deep)
 	geoBackboardRight->setNodeMask(NodeMaskRight);
 	_rootLeft->addChild(geoBackboardRight.get());
 }
-
 
 void PickModelHandler::createBillboardTree(Image* image, float deep)
 {
@@ -546,8 +601,6 @@ void PickModelHandler::createBillboardTree(Image* image, float deep)
 	_root->addChild(backBoard.get());
 	//return billboard.get();
 }
-
-
 
 void  PickModelHandler::setOrientation(int orientation)
 {
@@ -639,7 +692,7 @@ bool PickModelHandler::handle(const osgGA::GUIEventAdapter &ea, osgGA::GUIAction
 	{
 		float clickX = ea.getX(), clickY = ea.getY();
 
-		int res = handlePickEvent(clickX, clickY, 1);
+		int res = pickAPI(clickX, clickY, 1);
 	}
 	else if (ea.getEventType() == GUIEventAdapter::KEYDOWN )//_lastModel != NULL && _selectionBox != NULL)
 	{
@@ -791,8 +844,8 @@ bool  PickModelHandler::doAddObj(MatrixTransform * trans, bool isDetectCollision
 				for (int i = 0; i < 2; i++){
 					cout << "try one" << endl;
 					Vec3d tmp = transVec[i] * k;
-					if (tmp.x() < _groundWidthX  && tmp.y()  < _groundHeightY && tmp.z() < _groundWidthZ
-						&& tmp.x() > -_groundWidthX  && tmp.y()  > -_groundHeightY && tmp.z() > -_groundWidthZ) {
+					if (tmp.x() < _roomWidthX  && tmp.y()  < _roomHeightY && tmp.z() < _roomWidthZ
+						&& tmp.x() > -_roomWidthX  && tmp.y()  > -_roomHeightY && tmp.z() > -_roomWidthZ) {
 						if (translateOneObj(trans, NULL, btBoxObject, tmp)) {
 							collisionFlag = false;
 							canbreak = true;
@@ -857,16 +910,13 @@ bool  PickModelHandler::doAddObj(MatrixTransform * trans, bool isDetectCollision
 
 }
 
-bool PickModelHandler::addOneObj(string objPath, Vec3d initPos){
+bool PickModelHandler::addOneObj(string objPath, Vec3d initPos, int clientNum){
 	//ref_ptr<Node> model1 = osgDB::readNodeFile("D:/ProgramLib/objs/chair/chair_3.skp/chair_3.obj");  //;cow.osg");
-	ref_ptr<Node> model = osgDB::readNodeFile(objPath); 
+	ref_ptr<Node> model = osgDB::readNodeFile(objPath);
 	if (model.get() == NULL) {
 		cout << "read node file:" << objPath << "  failed" << endl;
 		return false;
-
 	}
-
-	
 
 	Matrix transMatrix = osg::Matrix::translate(initPos.x(), initPos.y(), initPos.z());
 	ref_ptr<MatrixTransform> trans = new MatrixTransform(transMatrix);
@@ -874,6 +924,12 @@ bool PickModelHandler::addOneObj(string objPath, Vec3d initPos){
 	trans->setNodeMask(CastsShadowTraversalMask);
 	pushToHistory();
 	bool res = doAddObj(trans.get());
+	if (res)
+	{
+		int index = _allModelVec.size() - 1;
+		cout << "index" << index << endl;
+		chooseOneMatrixTransform(index, clientNum);
+	}
 	return res;
 }
 
@@ -897,12 +953,19 @@ void PickModelHandler::addGround(float widthX, float widthZ, float heightY)
 {
 	if (_hasGround){
 		cout << "already has ground" << endl;
-		return;
+		_root->removeChild(_roomTrans);
+		_collisionWorld->removeCollisionObject(_btground);
+		delete _cs;
+		//return;
 	}
 	/* BEGIN: Create environment boxes */
-	_groundWidthX = widthX;
-	_groundWidthZ = widthZ;
-	_groundHeightY = heightY;
+	//_groundWidthX = widthX;
+	//_groundWidthZ = widthZ;
+	//_groundHeightY = heightY;
+	cout << "roomSize" << widthX << " " << widthZ << " " << heightY << endl;
+	_roomWidthX = widthX;
+	_roomWidthZ = widthZ;
+	_roomHeightY = heightY;
 
 	float xDim(widthX);
 	float yDim(heightY);
@@ -917,35 +980,37 @@ void PickModelHandler::addGround(float widthX, float widthZ, float heightY)
 	groundStateSet = createTextureState(groundImage);
 
 
-	osg::MatrixTransform* shakeBox = new osg::MatrixTransform;
-	btCompoundShape* cs = new btCompoundShape;
+	//osg::MatrixTransform* shakeBox = new osg::MatrixTransform;
+	//btCompoundShape* cs = new btCompoundShape;
+	_roomTrans = new osg::MatrixTransform;
+	_cs = new btCompoundShape;
 	{ // left -X
 		osg::Vec3 halfLengths(thick, yDim, zDim);
 		osg::Vec3 center(-xDim, 0., 0.);
 
 		wallBox[0] = osgBox(center, halfLengths);
 		if (wallImage) wallBox[0]->setStateSet(wallStateSet);
-		
+
 		wallBox[0]->setNodeMask(0x1);
-		shakeBox->addChild(wallBox[0]);
+		_roomTrans->addChild(wallBox[0]);
 
 		btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
 		btTransform trans; trans.setIdentity();
 		trans.setOrigin(osgbCollision::asBtVector3(center));
-		cs->addChildShape(trans, box);
+		_cs->addChildShape(trans, box);
 	}
 	{ // -Z
 		osg::Vec3 halfLengths(xDim, yDim, thick);
-	//	osg::Vec3 halfLengths(xDim*.5, yDim*.5, thick*.5);
+		//	osg::Vec3 halfLengths(xDim*.5, yDim*.5, thick*.5);
 		osg::Vec3 center(0., 0., zDim);
 		wallBox[1] = osgBox(center, halfLengths);
 		if (wallImage) wallBox[1]->setStateSet(wallStateSet);
 		wallBox[1]->setNodeMask(0x1);
-		shakeBox->addChild(wallBox[1]);
+		_roomTrans->addChild(wallBox[1]);
 		btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
 		btTransform trans; trans.setIdentity();
 		trans.setOrigin(osgbCollision::asBtVector3(center));
-		cs->addChildShape(trans, box);
+		_cs->addChildShape(trans, box);
 	}
 	{ // right +X
 		osg::Vec3 halfLengths(thick, yDim, zDim);
@@ -953,12 +1018,12 @@ void PickModelHandler::addGround(float widthX, float widthZ, float heightY)
 		wallBox[2] = osgBox(center, halfLengths);
 		if (wallImage) wallBox[2]->setStateSet(wallStateSet);
 		wallBox[2]->setNodeMask(0x1);
-		shakeBox->addChild(wallBox[2]);
+		_roomTrans->addChild(wallBox[2]);
 
 		btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
 		btTransform trans; trans.setIdentity();
 		trans.setOrigin(osgbCollision::asBtVector3(center));
-		cs->addChildShape(trans, box);
+		_cs->addChildShape(trans, box);
 	}
 	{ // +Z  
 		osg::Vec3 halfLengths(xDim, yDim, thick);
@@ -966,11 +1031,11 @@ void PickModelHandler::addGround(float widthX, float widthZ, float heightY)
 		wallBox[3] = osgBox(center, halfLengths);
 		if (wallImage) wallBox[3]->setStateSet(wallStateSet);
 		wallBox[3]->setNodeMask(0x1);
-		shakeBox->addChild(wallBox[3]);
+		_roomTrans->addChild(wallBox[3]);
 		btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
 		btTransform trans; trans.setIdentity();
 		trans.setOrigin(osgbCollision::asBtVector3(center));
-		cs->addChildShape(trans, box);
+		_cs->addChildShape(trans, box);
 	}
 	{ //  -Y floor
 		osg::Vec3 halfLengths(xDim, thick, zDim);
@@ -978,11 +1043,11 @@ void PickModelHandler::addGround(float widthX, float widthZ, float heightY)
 		wallBox[4] = osgBox(center, halfLengths);
 		if (groundImage) wallBox[4]->setStateSet(groundStateSet);
 		wallBox[4]->setNodeMask(0x1);
-		shakeBox->addChild(wallBox[4]);
+		_roomTrans->addChild(wallBox[4]);
 		btBoxShape* box = new btBoxShape(osgbCollision::asBtVector3(halfLengths));
 		btTransform trans; trans.setIdentity();
 		trans.setOrigin(osgbCollision::asBtVector3(center));
-		cs->addChildShape(trans, box);
+		_cs->addChildShape(trans, box);
 	}
 	//{ //  -Y floor2
 	//	osg::Vec3 halfLengths(xDim, thick, zDim);
@@ -1006,14 +1071,16 @@ void PickModelHandler::addGround(float widthX, float widthZ, float heightY)
 	//}
 
 	/* END: Create environment boxes */
-	shakeBox->setNodeMask(0x1);  //avoid choosing the Node Mask
-	_root->addChild(shakeBox);
-	btCollisionObject* btground = new btCollisionObject;
-	btground->setCollisionShape(cs);
-	btground->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
+	_roomTrans->setNodeMask(0x1);  //avoid choosing the Node Mask
+	_root->addChild(_roomTrans);
+
+	_btground = new btCollisionObject;
+	_btground->setCollisionShape(_cs);
+	_btground->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
 	//btground->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
 	//btground->setWorldTransform(osgbCollision::asBtTransform(transMatrix1));
-	_collisionWorld->addCollisionObject(btground);
+	_collisionWorld->addCollisionObject(_btground);
+
 	_hasGround = true;
 }
 
@@ -1052,10 +1119,10 @@ MatrixTransform* PickModelHandler::getOrCreateSelectionBox(int index, int client
 		return selectionBox;
 
 }
-MatrixTransform* PickModelHandler::createBackBox()
+MatrixTransform* PickModelHandler::createBackBox(Vec3f center)
 {
-	ref_ptr<ShapeDrawable> boxDrawable = new ShapeDrawable(new Box(Vec3(), 1.f));
-
+	//ref_ptr<ShapeDrawable> boxDrawable = new ShapeDrawable(new Box(Vec3(0.,0.,0.), 1.f));
+	ref_ptr<ShapeDrawable> boxDrawable = new ShapeDrawable(new Box(center, 1.f));
 
 	boxDrawable->setColor(Vec4(.8f, .8f, .8f, 0.0f));
 	
@@ -2407,9 +2474,9 @@ bool PickModelHandler::chooseOneMatrixTransform(MatrixTransform* lastModel, int 
 	ref_ptr<MatrixTransform> tbox = getOrCreateSelectionBox(index, clientNum);
 	tbox->setNodeMask(0x1);
 	tbox->setMatrix(mat);\
-	if (backBox.get() != NULL)
-		_root->removeChild(backBox);
-	backBox = createBackBox();
+	//if (backBox.get() != NULL)
+	//	_root->removeChild(backBox);
+	//backBox = createBackBox();
 
 	showAxis();
 	//Matrix axisMatrix = Matrix::translate(lastModel->getMatrix().getTrans());
@@ -2572,6 +2639,7 @@ void PickModelHandler::handleKeyEvent(const osgGA::GUIEventAdapter &ea, osgGA::G
 		bool isInceaseGap = false;
 		bool isRotateMultiple = false;
 		bool isPopHistory = false;
+		bool isScaleRoom = false;
 
 		Vec3d scaleFactor(1, 1, 1);
 		Matrix rotMatrix;
@@ -2580,8 +2648,8 @@ void PickModelHandler::handleKeyEvent(const osgGA::GUIEventAdapter &ea, osgGA::G
 
 		switch (ea.getKey())
 		{
-		//rotate around Y axis
-		case 'k':    
+			//rotate around Y axis
+		case 'k':
 		case 'K':
 			rotMatrix = Matrix::rotate(degreeToPie(45), _upVec);
 			isRotate = true;
@@ -2601,7 +2669,7 @@ void PickModelHandler::handleKeyEvent(const osgGA::GUIEventAdapter &ea, osgGA::G
 			rotMatrix = Matrix::rotate(degreeToPie(-45), _upVec);
 			isRotateMultiple = true;
 			break;
-	    //scale object
+			//scale object
 		case 'm':
 		case 'M':
 			scaleFactor.set(1.1f, 1.1f, 1.1f);
@@ -2614,43 +2682,43 @@ void PickModelHandler::handleKeyEvent(const osgGA::GUIEventAdapter &ea, osgGA::G
 			isScale = true;
 			isInceaseGap = false;
 			break;
-		//move along x(right/left)
+			//move along x(right/left)
 		case 'd':
 		case 'D':  //right
-			transVec = _rightVec * _transStep;
-			//transVec = _cameraRightVec * _transStep;
+			//transVec = _rightVec * _transStep;
+			transVec = _cameraRightVec * _transStep;
 			isTranslate = true;
 
 			break;
 		case 'a':
 		case 'A':
-			transVec = _leftVec * _transStep;
-			//transVec = -_cameraRightVec * _transStep;
+			//transVec = _leftVec * _transStep;
+			transVec = -_cameraRightVec * _transStep;
 			isTranslate = true;
 			break;
-	   //move along y(up/down)
+			//move along y(up/down)
 		case 'w':
 		case 'W':
-			transVec = _upVec * _transStep;
-			//transVec = _cameraUpVec * _transStep;
+			//transVec = _upVec * _transStep;
+			transVec = _cameraUpVec * _transStep;
 			isTranslate = true;
 			break;
 		case 's':
 		case 'S':
-			transVec = _downVec * _transStep;
-			//transVec = -_cameraUpVec * _transStep;
+			//transVec = _downVec * _transStep;
+			transVec = -_cameraUpVec * _transStep;
 			isTranslate = true;
 			break;
 		case 'x':
 		case 'X':
-			transVec = _forwardVec * _transStep;
-			//transVec = _cameraForwardVec * _transStep;
+			//transVec = _forwardVec * _transStep;
+			transVec = _cameraForwardVec * _transStep;
 			isTranslate = true;
 			break;
 		case 'c':
 		case 'C':
-			transVec = _backwardVec * _transStep;
-			//transVec = -_cameraForwardVec * _transStep;
+			//transVec = _backwardVec * _transStep;
+			transVec = -_cameraForwardVec * _transStep;
 			isTranslate = true;
 			break;
 		case 'u':  //duplicate
@@ -2673,7 +2741,37 @@ void PickModelHandler::handleKeyEvent(const osgGA::GUIEventAdapter &ea, osgGA::G
 		case 'F':
 			isPopHistory = true;
 			break;
-
+		case 'v':
+		case 'V':
+			isScaleRoom = true;
+			scaleFactor = Vec3d(1.1, 1.1, 1.1);
+			break;
+		case 'b':
+		case 'B':
+			isScaleRoom = true;
+			scaleFactor = Vec3d(0.9, 0.9, 0.9);
+			break;
+		case GUIEventAdapter::KEY_F1:
+			//cout << "1 is press" << endl;
+			BACKGROUNDWIDTH *= 1.1;
+			BACKGROUNDHEIGHT *= 1.1;
+			break;
+		case GUIEventAdapter::KEY_F2:
+			BACKGROUNDWIDTH *= 0.9;
+			BACKGROUNDHEIGHT *= 0.9;
+			break;
+		case GUIEventAdapter::KEY_F3:
+			BACKGROUNDDEEP += 50;
+			break;
+		case GUIEventAdapter::KEY_F4:
+			BACKGROUNDDEEP -= 50;
+			break;
+		case GUIEventAdapter::KEY_F5:
+			BACKGROUNDEYEDIS += 10;
+			break;
+		case GUIEventAdapter::KEY_F6:
+			BACKGROUNDEYEDIS -= 10;
+			break;
 		default:
 			break;
 		}
@@ -2682,7 +2780,7 @@ void PickModelHandler::handleKeyEvent(const osgGA::GUIEventAdapter &ea, osgGA::G
 
 		if (isPopHistory) {
 			popFromHistoryAPI();
-			
+
 		}
 		else if (isTranslate) {
 			translateAPI(transVec, client1);
@@ -2708,6 +2806,9 @@ void PickModelHandler::handleKeyEvent(const osgGA::GUIEventAdapter &ea, osgGA::G
 		}
 		else if (isPermutateRow) {
 			permutateRowAPI(client1);
+		}
+		else if (isScaleRoom) {
+			scaleRoom(scaleFactor.x(), scaleFactor.y(), scaleFactor.z());
 		}
 
 	}
@@ -3010,13 +3111,14 @@ void PickModelHandler::addBackground(string imageLeft, string imageRight)
 	//createBillboardTree(tImage.get(), 800.0);
 	//createBackboard(tImageL.get(), _viewLeft, _rootLeft, 1600.0);
 	//createBackboard(tImageR.get(), _viewRight, _rootRight., 1600.0);
-	createBackboard(tImageL.get(), tImageR.get(), 2000.0);
+	createBackboard(tImageL.get(), tImageR.get(), BACKGROUNDWIDTH, BACKGROUNDHEIGHT, BACKGROUNDDEEP, BACKGROUNDEYEDIS);
+	//createBackboard(tImageL.get(), tImageR.get());
 }
 
 void PickModelHandler::addBackground()
 {
-
-	createBackboard(tImageL.get(), tImageR.get(), 2000.0);
+	createBackboard(tImageL.get(), tImageR.get(), BACKGROUNDWIDTH, BACKGROUNDHEIGHT, BACKGROUNDDEEP, BACKGROUNDEYEDIS);
+	//createBackboard(tImageL.get(), tImageR.get());
 }
 void PickModelHandler::setBackgroundImg(string imageLeft, string imageRight)
 {
@@ -3025,6 +3127,28 @@ void PickModelHandler::setBackgroundImg(string imageLeft, string imageRight)
 	tImageL = osgDB::readImageFile(imageLeft);
 	tImageR = osgDB::readImageFile(imageRight);
 	setBackboardImg(tImageL.get(), tImageR.get());
+}
+void PickModelHandler::addBackground(cv::Mat &imageLeft, cv::Mat &imageRight)
+{
+
+	tImageL = mat2image(imageLeft);
+	tImageR = mat2image(imageRight);
+	//writeImageFile(*tImageL, "osgframe.bmp");
+	//writeImageFile(*tImageR, "osgframe2.bmp");
+	//createBackboard(tImageL.get(), tImageR.get(), BACKGROUNDDEEP);
+	createBackboard(tImageL.get(), tImageR.get(), BACKGROUNDWIDTH, BACKGROUNDHEIGHT, BACKGROUNDDEEP, BACKGROUNDEYEDIS);
+}
+
+void PickModelHandler::scaleRoom(double scaleX, double scaleY, double scaleZ)
+{
+	_roomWidthX = _roomWidthX * scaleX;
+	_roomWidthZ = _roomWidthZ * scaleY;
+	_roomHeightY = _roomHeightY * scaleZ;
+	cout << "add ground" << endl;
+	addGround(_roomWidthX, _roomWidthZ, _roomHeightY);
+
+	setOrientation(_orientation);
+
 }
 
 //void PickModelHandler::addBackground(Camera* _camera)

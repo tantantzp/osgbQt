@@ -18,7 +18,7 @@ class PickModelHandler : public osgGA::GUIEventHandler
 {
 public:
 	PickModelHandler(btCollisionWorld* collisionWorld, Group* root, osgViewer::View* viewl, osgViewer::View* viewr, Group* rootLeft, Group* rootRight);
-	MatrixTransform *createBackBox();
+	MatrixTransform *createBackBox(Vec3f center = Vec3f(0., 0., 0.));
 
 	MatrixTransform *getOrCreateSelectionBox(int index, int clientNum);
 	void  PickModelHandler::detectCollision(bool& colState, btCollisionWorld* cw);
@@ -34,9 +34,10 @@ public:
 	void setOrientation(int orientation);
 	void createBillboardTree(Image* image, float deep = 800.0);
 	//void createBackboard(Image* image, View* view, Group* root, float deep = 1000);
-	void createBackboard(Image* image, Image* image2, float deep = 1000);
+	void createBackboard(Image* image, Image* image2, float width = 720., float height = 1280., float deep = 2200., float eyeDis= 0.);
+	//void PickModelHandler::createBackboard(Image* image, Image* image2, float deep);
 	void setBackboardImg(Image* image, Image* image2);
-
+	
 
 	Matrix PickModelHandler::getAxisMatrix();
 	void PickModelHandler::createAxis(Matrix transMatrix);
@@ -47,7 +48,7 @@ public:
 	void setCameraMatrix(Matrix m);
 public:
 	void addGround(float widthX, float widthZ, float heightY);
-	bool addOneObj(string objPath, Vec3d initPos);
+	bool addOneObj(string objPath, Vec3d initPos, int clientNum = 0);
 	void PickModelHandler::updateCameraVec();
 	//API
 	void translateAPI(float dright, float dup, float dforward, int clientNum);
@@ -68,7 +69,11 @@ public:
 	void addBackground(string imageLeft, string imageRight);
 	void addBackground();
 	void setBackgroundImg(string imageLeft, string imageRight);
+	void addBackground(cv::Mat &imageLeft, cv::Mat &imageRight);
 	//void addBackground(Camera* _camera);
+
+	void scaleRoom(double scaleX, double scaleY, double scaleZ);
+
 
 protected:
 
@@ -126,13 +131,12 @@ protected:
 	
 	
 		double _lastX, _lastY;
-		double _groundWidthX, _groundWidthZ, _groundHeightY;
+		//double _groundWidthX, _groundWidthZ, _groundHeightY;
 		bool _colState;
 		float _transStep;
 		bool _hasGround;
 		//unsigned int _selectNum;
 	
-		Geode* wallBox[6];
 	
 	
 	
@@ -164,6 +168,16 @@ protected:
 
 		//camera matrix
 		Matrix cameraMatrix;
+
+		//room
+		float _roomScaleFactor;
+		float _roomDistance;
+		float _roomWidthX, _roomWidthZ, _roomHeightY;
+		//	double _groundWidthX, _groundWidthZ, _groundHeightY;
+		ref_ptr<Geode> wallBox[6];
+		ref_ptr<MatrixTransform> _roomTrans;
+		btCompoundShape* _cs;
+		btCollisionObject* _btground;
 };
 
 #endif

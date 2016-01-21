@@ -41,6 +41,7 @@
 #include <osgViewer/CompositeViewer>
 #include <osgViewer/ViewerEventHandlers>
 #include <osgDB/ReadFile>
+#include <osgDB/WriteFile>
 #include <osgGA/TrackballManipulator>
 #include <osgGA/GUIEventHandler>
 #include <osgGA/TrackballManipulator>
@@ -77,6 +78,8 @@
 #include <osgQt/GraphicsWindowQt>
 #include <osgViewer/api/Win32/GraphicsWindowWin32>
 
+#include <opencv2/opencv.hpp>
+
 using namespace std;
 using namespace osg;
 using namespace osgGA;
@@ -90,16 +93,21 @@ const int NodeMaskLeft = 0x8;
 const int NodeMaskRight = 0x10;
 const int CameraMaskLeft = 0xB;
 const int CameraMaskRight = 0x13;
+
+
+static float BACKGROUNDWIDTH = 720.;
+static float BACKGROUNDHEIGHT = 1280.;
+static float BACKGROUNDDEEP = 2200.;
+static float BACKGROUNDEYEDIS = 0.;
+
 //#define DEF_DOUBLEVIEW
-
-
 //#define QUAD_BUFFER_TEST
 //#define QUAD_WINDOW_EMBEDDED
 
-#define DEF_STEREO
+//#define DEF_STEREO
 //#define DEF_ISWIN
 
-#define DEF_AXIS
+//#define DEF_AXIS
 
 
 

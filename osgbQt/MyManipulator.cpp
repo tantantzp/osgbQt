@@ -385,12 +385,23 @@ bool  MyManipulator::performCameraTranslate(const double dx, const double dy)
 }
 bool MyManipulator::performCameraZoom(const double zoomFactor)
 {
+	//Vec3f eye;
+	//Vec3f center;
+	//Vec3f up;
+	////_viewLeft->getCamera()->getViewMatrixAsLookAt(eye, center, up);
+
+	//Matrix im = getInverseMatrix();
+	//im.getLookAt(eye, center, up);
+
+	//cout << eye << " " << center << endl;
+	//cout << eye - center << endl;
+
 	//cout <<"_currentZoom"<< _currentZoom << endl;
-	if (_currentZoom + zoomFactor > _maxZoom || _currentZoom + zoomFactor < (-_maxZoom * 2))
-	{
-		cout << "zoom too far!!" << endl;
-	}
-	else
+	//if (_currentZoom + zoomFactor > _maxZoom || _currentZoom + zoomFactor < (-_maxZoom * 2))
+	//{
+	//	cout << "zoom too far!!" << endl;
+	//}
+	//else
 	{
 		zoomModel(zoomFactor, true);
 		_currentZoom += zoomFactor;
