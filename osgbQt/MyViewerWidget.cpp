@@ -97,12 +97,12 @@ QGLWidget()
 		float widthX = 300., widthZ = 300., heightY = 150.;
 		_picker->addGround(widthX, widthZ, heightY);
 
-
+		setCamera();
 
 		for (int i = 0; i < 2; i++) {
 			string strobj1 = "D:/ProgramLib/objs/chair/chair_17.skp/chair_17.obj";
 			Vec3d pos1(-40., 70., 0.);
-			_picker->addOneObj(strobj1, pos1);
+			_picker->addOneObj(strobj1, pos1, 1);
 		}
 		for (int i = 0; i < 2; i++) {
 			string strobj2 = "D:/ProgramLib/objs/chair/chair_8.skp/chair_8.obj";
@@ -132,7 +132,7 @@ QGLWidget()
 		_viewLeft->setSceneData(_rootLeft);
 		_viewRight->setSceneData(_rootRight);
 
-		setCamera();
+
 
 		//cv::Mat img1 = cv::imread("wall2.jpg");
 		//cv::Mat img2 = cv::imread("wall3.jpg");
@@ -141,6 +141,7 @@ QGLWidget()
 
 		_manipulator->setPickModelHandler(_picker);
 		_manipulator2->setPickModelHandler(_picker);
+
 
 		if (STEREO)
 		{
@@ -227,14 +228,17 @@ void MyViewerWidget::setCamera()
 	camera->setProjectionMatrixAsPerspective(40., 1., 1., 50.);
 
 	_manipulator = new MyManipulator(_viewLeft);
+
+#ifndef USER2
 	_manipulator->setHomePosition(osg::Vec3(0, 0, 500), osg::Vec3(0, 0, 0), osg::Vec3(0, -1, 0));
+#else
+	_manipulator->setHomePosition(osg::Vec3(0, 0, -500), osg::Vec3(0, 0, 0), osg::Vec3(0, -1, 0));
+#endif
 
 	_viewLeft->setCameraManipulator(_manipulator);
 
 
 	osg::Camera* camera2 = _viewRight->getCamera();
-
-
 
 	camera2->setClearColor(osg::Vec4(0.5, 0.5, 0.5, 0.0));
 	if (!ISWIN)
@@ -322,6 +326,21 @@ void MyViewerWidget::myFrame()
 
 		flag = true;
 	}
+	if (_manipulator->_isTranslate > 0)
+	{
+		float dx = _manipulator->_myDx;
+		float dy = _manipulator->_myDy;
+		_manipulator->performCameraTranslate(dx, dy);
+
+		_manipulator->setOrientation();
+		_picker->setAxis();
+
+
+		_picker->addBackground();
+		_manipulator->_isTranslate = 0;
+
+		flag = true;
+	}
 
 	_viewLeft->frame();
 
@@ -331,11 +350,11 @@ void MyViewerWidget::myFrame()
 	if (_frameCount == 0)
 	{
 
-		//cv::Mat img1 = cv::imread("wall2.jpg");
-		//cv::Mat img2 = cv::imread("wall3.jpg");
+		cv::Mat img1 = cv::imread("wall2.jpg");
+		cv::Mat img2 = cv::imread("wall3.jpg");
 		//cv::imwrite("cvout.jpg", img1);
 		//cv::imwrite("cvout2.jpg", img2);
-		//_picker->addBackground(img1, img2);
+		_picker->addBackground(img1, img2);
 		//_picker->addBackground();
 		//_picker->addBackground("wall3.jpg", "wall2.jpg");
 		//_picker->setBackgroundImg("cvout.jpg", "cvout2.jpg");

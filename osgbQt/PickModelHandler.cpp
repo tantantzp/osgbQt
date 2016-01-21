@@ -68,6 +68,11 @@ StateSet* createTextureState(Image* img)
 		//stateset->setTextureAttributeAndModes(0, texgen, StateAttribute::ON);
 		//stateset->setTextureMode(0, GL_TEXTURE_GEN_S, StateAttribute::ON | StateAttribute::OVERRIDE);
 		//stateset->setTextureMode(0, GL_TEXTURE_GEN_T, StateAttribute::ON | StateAttribute::OVERRIDE);
+
+		ref_ptr<Material> mat = new Material;
+		mat->setAmbient(Material::FRONT, Vec4(5., 5., 5., 1.));
+		stateset->setAttribute(mat.get());
+
 	}
 	return stateset;
 }
@@ -320,13 +325,19 @@ void PickModelHandler::updateCameraVec()
 	Vec3f eye;
 	Vec3f center;
 	Vec3f up;
-	_viewLeft->getCamera()->getViewMatrixAsLookAt(eye, center, up);
+	//_viewLeft->getCamera()->getViewMatrixAsLookAt(eye, center, up);
+	MyManipulator* tmp = (MyManipulator*)_viewLeft->getCameraManipulator();
+	Matrix im = tmp->getInverseMatrix();
+	im.getLookAt(eye, center, up);
+
 	_cameraForwardVec = center - eye;
 	_cameraForwardVec.normalize();
 	_cameraUpVec = up;
 	_cameraUpVec.normalize();
 	_cameraRightVec = _cameraForwardVec ^ _cameraUpVec;
 	_cameraRightVec.normalize();
+
+//	cout << "up vec:" << _cameraUpVec.x() << "," << _cameraUpVec.y() << "," << _cameraUpVec.z() << endl; 
 
 	return;
 }
@@ -337,7 +348,7 @@ void PickModelHandler::setCameraMatrix(Matrix m)
 
 void PickModelHandler::setBackboardImg(Image* image, Image* image2)
 {
-	if (geoBackboardLeft.get() != NULL)
+	if (geoBackboardLeft.get() != NULL && geoBackboardRight.get() != NULL)
 	{
 		ref_ptr<Geometry> geometry = (Geometry*)geoBackboardLeft->getDrawable(0);
 		
@@ -478,10 +489,12 @@ void PickModelHandler::createBackboard(Image* image, Image* image2, float width,
 	//left = direction ^ up;
 	//left.normalize();
     //boardCenter = eye + direction * deep;
-	point1 -= left * tEyeDis;
-	point2 -= left * tEyeDis;
-	point3 -= left * tEyeDis;
-	point4 -= left * tEyeDis;
+	point1 = boardCenter + up * tHeigth + left * tWidth - left * tEyeDis;
+	point2 = boardCenter + up * tHeigth - left * tWidth - left * tEyeDis;
+	point3 = boardCenter - up * tHeigth - left * tWidth - left * tEyeDis;
+	point4 = boardCenter - up * tHeigth + left * tWidth - left * tEyeDis;
+
+
 
 	ref_ptr<Geometry> geometry2 = new Geometry();
 
@@ -907,16 +920,13 @@ bool  PickModelHandler::doAddObj(MatrixTransform * trans, bool isDetectCollision
 
 }
 
-bool PickModelHandler::addOneObj(string objPath, Vec3d initPos){
+bool PickModelHandler::addOneObj(string objPath, Vec3d initPos, int clientNum){
 	//ref_ptr<Node> model1 = osgDB::readNodeFile("D:/ProgramLib/objs/chair/chair_3.skp/chair_3.obj");  //;cow.osg");
 	ref_ptr<Node> model = osgDB::readNodeFile(objPath); 
 	if (model.get() == NULL) {
 		cout << "read node file:" << objPath << "  failed" << endl;
 		return false;
-
 	}
-
-	
 
 	Matrix transMatrix = osg::Matrix::translate(initPos.x(), initPos.y(), initPos.z());
 	ref_ptr<MatrixTransform> trans = new MatrixTransform(transMatrix);
@@ -924,6 +934,12 @@ bool PickModelHandler::addOneObj(string objPath, Vec3d initPos){
 	trans->setNodeMask(CastsShadowTraversalMask);
 	pushToHistory();
 	bool res = doAddObj(trans.get());
+	if (res)
+	{
+		int index = _allModelVec.size() - 1;
+		cout <<"index"<< index << endl;
+		chooseOneMatrixTransform(index, clientNum);
+	}
 	return res;
 }
 
@@ -2326,7 +2342,12 @@ bool PickModelHandler::chooseOneMatrixTransform(int index, int clientNum)
 	if (index >= 0 && index < _allModelVec.size())
 	{
 		MatrixTransform* model = _allModelVec[index];
-		if (model == NULL) return false;
+		if (model == NULL)
+		{
+			cout << "MODEL is NULL" << endl;
+			return false;
+		}
+		cout << "choose one" << endl;
 		bool res = chooseOneMatrixTransform(model, clientNum);
 
 		return res;
@@ -2398,6 +2419,7 @@ bool PickModelHandler::chooseOneMatrixTransform(MatrixTransform* lastModel, int 
 		return false;
 	}
 
+
 	bool isalreadyChosed = false;
 	
 	bool isChosedByOppositeSide = false;
@@ -2464,8 +2486,8 @@ bool PickModelHandler::chooseOneMatrixTransform(MatrixTransform* lastModel, int 
 
 	ref_ptr<MatrixTransform> tbox = getOrCreateSelectionBox(index, clientNum);
 	tbox->setNodeMask(ChooseBoxMask);
-
 	tbox->setMatrix(mat);
+
 	if (backBox.get() != NULL)
 		_root->removeChild(backBox);
 	backBox = createBackBox();
@@ -2475,6 +2497,7 @@ bool PickModelHandler::chooseOneMatrixTransform(MatrixTransform* lastModel, int 
 	//axisMatrix *= Matrix::translate(_rightVec * 50 + _forwardVec * 50);
 	//setAxis(axisMatrix);
 	setAxis();
+
 	return true;
 }
 
@@ -2677,40 +2700,40 @@ void PickModelHandler::handleKeyEvent(const osgGA::GUIEventAdapter &ea, osgGA::G
 		//move along x(right/left)
 		case 'd':
 		case 'D':  //right
-			transVec = _rightVec * _transStep;
-			//transVec = _cameraRightVec * _transStep;
+			//transVec = _rightVec * _transStep;
+			transVec = _cameraRightVec * _transStep;
 			isTranslate = true;
 
 			break;
 		case 'a':
 		case 'A':
-			transVec = _leftVec * _transStep;
-			//transVec = -_cameraRightVec * _transStep;
+			//transVec = _leftVec * _transStep;
+			transVec = -_cameraRightVec * _transStep;
 			isTranslate = true;
 			break;
 	   //move along y(up/down)
 		case 'w':
 		case 'W':
-			transVec = _upVec * _transStep;
-			//transVec = _cameraUpVec * _transStep;
+			//transVec = _upVec * _transStep;
+			transVec = _cameraUpVec * _transStep;
 			isTranslate = true;
 			break;
 		case 's':
 		case 'S':
-			transVec = _downVec * _transStep;
-			//transVec = -_cameraUpVec * _transStep;
+			//transVec = _downVec * _transStep;
+			transVec = -_cameraUpVec * _transStep;
 			isTranslate = true;
 			break;
 		case 'x':
 		case 'X':
-			transVec = _forwardVec * _transStep;
-			//transVec = _cameraForwardVec * _transStep;
+			//transVec = _forwardVec * _transStep;
+			transVec = _cameraForwardVec * _transStep;
 			isTranslate = true;
 			break;
 		case 'c':
 		case 'C':
-			transVec = _backwardVec * _transStep;
-			//transVec = -_cameraForwardVec * _transStep;
+			//transVec = _backwardVec * _transStep;
+			transVec = -_cameraForwardVec * _transStep;
 			isTranslate = true;
 			break;
 		case 'u':  //duplicate
@@ -2742,6 +2765,27 @@ void PickModelHandler::handleKeyEvent(const osgGA::GUIEventAdapter &ea, osgGA::G
 		case 'B':
 			isScaleRoom = true;
 			scaleFactor = Vec3d(0.9, 0.9, 1.);
+			break;
+		case GUIEventAdapter::KEY_F1:
+			//cout << "1 is press" << endl;
+			BACKGROUNDWIDTH *= 1.1;
+			BACKGROUNDHEIGHT *= 1.1;
+			break;
+		case GUIEventAdapter::KEY_F2:
+			BACKGROUNDWIDTH *= 0.9;
+			BACKGROUNDHEIGHT *= 0.9;
+			break;
+		case GUIEventAdapter::KEY_F3:
+			BACKGROUNDDEEP += 50;
+			break;
+		case GUIEventAdapter::KEY_F4:
+			BACKGROUNDDEEP -= 50;
+			break;
+		case GUIEventAdapter::KEY_F5:
+			BACKGROUNDEYEDIS += 10;
+			break;
+		case GUIEventAdapter::KEY_F6:
+			BACKGROUNDEYEDIS -= 10;
 			break;
 		default:
 			break;
@@ -3093,7 +3137,7 @@ void PickModelHandler::addBackground(cv::Mat &imageLeft, cv::Mat &imageRight)
 	//writeImageFile(*tImageL, "osgframe.bmp");
 	//writeImageFile(*tImageR, "osgframe2.bmp");
 
-	createBackboard(tImageL.get(), tImageR.get(), BACKGROUNDWIDTH, BACKGROUNDHEIGHT, BACKGROUNDDEEP);
+	createBackboard(tImageL.get(), tImageR.get(), BACKGROUNDWIDTH, BACKGROUNDHEIGHT, BACKGROUNDDEEP, BACKGROUNDEYEDIS);
 }
 
 void PickModelHandler::addBackground(string imageLeft, string imageRight)

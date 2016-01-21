@@ -47,7 +47,7 @@ public:
 	void setCameraMatrix(Matrix m);
 public:
 	void addGround(float widthX, float widthZ, float heightY);
-	bool addOneObj(string objPath, Vec3d initPos);
+	bool addOneObj(string objPath, Vec3d initPos, int clientNum = 0);
 	void PickModelHandler::updateCameraVec();
 	//API
 	void translateAPI(float dright, float dup, float dforward, int clientNum);

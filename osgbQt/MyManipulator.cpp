@@ -446,6 +446,7 @@ bool MyManipulator::handleMousePush(const GUIEventAdapter& ea, GUIActionAdapter&
 
 
 	performMovement(tx, ty, function);
+
 	_manipulator2->performCameraTranslate(-_eyeDistance, 0);
 	_manipulator2->performMovement(tx, ty, function);
 	_manipulator2->performCameraTranslate(_eyeDistance, 0);

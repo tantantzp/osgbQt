@@ -121,9 +121,10 @@ static float BACKGROUNDEYEDIS = 10.;
 #define DEF_STEREO
 
 //#define DEF_ISWIN
-
 //#define DEF_AXIS
 
+
+#define USER2
 
 
 #pragma comment(lib, "osg.lib")
