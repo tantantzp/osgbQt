@@ -2,6 +2,7 @@
 #define UTILS_H
 
 #include <iostream>
+#include <iomanip>
 #include <cstdlib>
 #include <map>
 #include <string>
@@ -78,37 +79,53 @@
 #include <osgQt/GraphicsWindowQt>
 #include <osgViewer/api/Win32/GraphicsWindowWin32>
 
+
 #include <opencv2/opencv.hpp>
 
 using namespace std;
 using namespace osg;
 using namespace osgGA;
 using namespace osgDB;
+//using namespace cv;
+
+const int MODELSIZEMIN = 15;  //auto scaling when load the obj, if the radius of obj < MODELSIZEMIN, scale to MODELSIZEMIN
+const int MODELSIZEMAX = 40;
+
+const float PICKRANGE = 10.;  //pixel
 
 const int ReceivesShadowTraversalMask = 0x1;
 const int CastsShadowTraversalMask = 0x2;
 const int NoShadowTraversalMask = 0x4;
+
+const int ChooseBoxMask = 0x2;
+const int AxisMask = 0x2;
 
 const int NodeMaskLeft = 0x8;
 const int NodeMaskRight = 0x10;
 const int CameraMaskLeft = 0xB;
 const int CameraMaskRight = 0x13;
 
-
 static float BACKGROUNDWIDTH = 720.;
 static float BACKGROUNDHEIGHT = 1280.;
 static float BACKGROUNDDEEP = 2200.;
-static float BACKGROUNDEYEDIS = 0.;
+static float BACKGROUNDEYEDIS = 10.;
+
+
 
 //#define DEF_DOUBLEVIEW
 //#define QUAD_BUFFER_TEST
 //#define QUAD_WINDOW_EMBEDDED
 
-//#define DEF_STEREO
-//#define DEF_ISWIN
 
+#define DEF_STEREO
+
+
+//#define DEF_ISWIN
 //#define DEF_AXIS
 
+
+
+#define USER2
 
 
 #pragma comment(lib, "osg.lib")

@@ -10,7 +10,7 @@ float degreeToPie(float degree)
 
 Image* mat2image(cv::Mat &cvimg)
 {
-	// 
+
 	cvtColor(cvimg, cvimg, CV_BGR2RGB);
 	//cv::flip(cvimg, cvimg, 0);
 
@@ -52,7 +52,11 @@ StateSet* createTextureState(Image* img)
 		//texture->setFilter(Texture::MIN_FILTER, Texture::LINEAR);
 		//texture->setFilter(Texture::MAG_FILTER, Texture::NEAREST);
 
+		texture->setTextureSize(0, 0);
+		//texture->setInternalFormat(GL_BGR);
+
 		texture->setImage(img);
+
 		//TexGen* texgen = new TexGen;
 		//texgen->setMode(TexGen::OBJECT_LINEAR);
 		//texgen->setMode(TexGen::SPHERE_MAP);
@@ -64,10 +68,11 @@ StateSet* createTextureState(Image* img)
 		//stateset->setTextureAttributeAndModes(0, texgen, StateAttribute::ON);
 		//stateset->setTextureMode(0, GL_TEXTURE_GEN_S, StateAttribute::ON | StateAttribute::OVERRIDE);
 		//stateset->setTextureMode(0, GL_TEXTURE_GEN_T, StateAttribute::ON | StateAttribute::OVERRIDE);
-		
+
 		ref_ptr<Material> mat = new Material;
 		mat->setAmbient(Material::FRONT, Vec4(5., 5., 5., 1.));
 		stateset->setAttribute(mat.get());
+
 	}
 	return stateset;
 }
@@ -87,7 +92,7 @@ osg::Camera* createHUDBg(std::string imagePath){
 
 	osg::ref_ptr<osg::Geometry>gm = new osg::Geometry;
 
-	//���붥��
+
 	osg::ref_ptr<osg::Vec3Array>vertex = new osg::Vec3Array;
 	vertex->push_back(osg::Vec3(0, 0, 0));
 	vertex->push_back(osg::Vec3(800, 0, 0));
@@ -95,9 +100,9 @@ osg::Camera* createHUDBg(std::string imagePath){
 	vertex->push_back(osg::Vec3(0, 600, 0));
 	gm->setVertexArray(vertex);
 
-	//ѹ�뷨��
 
-	//��������
+
+
 	osg::ref_ptr<osg::Vec2Array>coord = new osg::Vec2Array;
 	coord->push_back(osg::Vec2(0, 0));
 	coord->push_back(osg::Vec2(1, 0));
@@ -143,7 +148,7 @@ PickModelHandler::PickModelHandler(btCollisionWorld* collisionWorld, Group* root
 	_root = root;
 	_rootLeft = rootLeft;
 	_rootRight = rootRight;
-	_viewLeft = viewl; 
+	_viewLeft = viewl;
 	_viewRight = viewr;
 
 	//_view = view;
@@ -154,6 +159,11 @@ PickModelHandler::PickModelHandler(btCollisionWorld* collisionWorld, Group* root
 
 	_hasGround = false;
 	_transStep = 10.0f;
+
+
+	//_groundWidthX = 0;
+	//_groundWidthZ = 0;
+	//_groundHeightY = 0;
 
 	_orientation = 0;
 
@@ -178,6 +188,8 @@ PickModelHandler::PickModelHandler(btCollisionWorld* collisionWorld, Group* root
 	Matrix transMatrix = osg::Matrix::translate(100., 0., 80.);
 	createAxis(transMatrix);
 	hideAxis();
+
+
 }
 
 Matrix PickModelHandler::getAxisMatrix()
@@ -303,7 +315,7 @@ void PickModelHandler::showAxis()
 		cout << "no axis to show" << endl;
 		return;
 	}
-	_allAxis->setNodeMask(0x2);
+	_allAxis->setNodeMask(AxisMask);
 #endif
 }
 
@@ -325,6 +337,8 @@ void PickModelHandler::updateCameraVec()
 	_cameraRightVec = _cameraForwardVec ^ _cameraUpVec;
 	_cameraRightVec.normalize();
 
+//	cout << "up vec:" << _cameraUpVec.x() << "," << _cameraUpVec.y() << "," << _cameraUpVec.z() << endl; 
+
 	return;
 }
 void PickModelHandler::setCameraMatrix(Matrix m)
@@ -334,7 +348,7 @@ void PickModelHandler::setCameraMatrix(Matrix m)
 
 void PickModelHandler::setBackboardImg(Image* image, Image* image2)
 {
-	if (geoBackboardLeft.get() != NULL)
+	if (geoBackboardLeft.get() != NULL && geoBackboardRight.get() != NULL)
 	{
 		ref_ptr<Geometry> geometry = (Geometry*)geoBackboardLeft->getDrawable(0);
 		
@@ -479,10 +493,12 @@ void PickModelHandler::createBackboard(Image* image, Image* image2, float width,
 	//left = direction ^ up;
 	//left.normalize();
     //boardCenter = eye + direction * deep;
-	//point1 = boardCenter + up * tHeigth + left * tWidth;
-	//point2 = boardCenter + up * tHeigth - left * tWidth;
-	//point3 = boardCenter - up * tHeigth - left * tWidth;
-	//point4 = boardCenter - up * tHeigth + left * tWidth;
+	point1 = boardCenter + up * tHeigth + left * tWidth - left * tEyeDis;
+	point2 = boardCenter + up * tHeigth - left * tWidth - left * tEyeDis;
+	point3 = boardCenter - up * tHeigth - left * tWidth - left * tEyeDis;
+	point4 = boardCenter - up * tHeigth + left * tWidth - left * tEyeDis;
+
+
 
 	point1 = boardCenter + up * tHeigth + left * tWidth - left * tEyeDis;
 	point2 = boardCenter + up * tHeigth - left * tWidth - left * tEyeDis;
@@ -875,13 +891,14 @@ bool  PickModelHandler::doAddObj(MatrixTransform * trans, bool isDetectCollision
 
 			BoundingSphere bb = model->getBound();
 			cout << "bb.radius" << bb.radius() << endl;
-			if (bb.radius() < 15)
+			//if (bb.radius() < 15)
+			if (bb.radius() < MODELSIZEMIN)
 			{
 				cout << "obj too small! scale bigger" << endl;
 				float scaleFactor = 15.0 / bb.radius();
 				scaleOneObj(trans, NULL, btBoxObject, Vec3d(scaleFactor, scaleFactor, scaleFactor));
 			}
-			if (bb.radius() > 50)
+			if (bb.radius() > MODELSIZEMAX)
 			{
 				cout << "obj too big! scale smaller" << endl;
 				float scaleFactor = 50.0 / bb.radius();
@@ -927,7 +944,7 @@ bool PickModelHandler::addOneObj(string objPath, Vec3d initPos, int clientNum){
 	if (res)
 	{
 		int index = _allModelVec.size() - 1;
-		cout << "index" << index << endl;
+
 		chooseOneMatrixTransform(index, clientNum);
 	}
 	return res;
@@ -959,10 +976,13 @@ void PickModelHandler::addGround(float widthX, float widthZ, float heightY)
 		//return;
 	}
 	/* BEGIN: Create environment boxes */
+
 	//_groundWidthX = widthX;
 	//_groundWidthZ = widthZ;
 	//_groundHeightY = heightY;
-	cout << "roomSize" << widthX << " " << widthZ << " " << heightY << endl;
+
+	cout <<"roomSize"<< widthX <<" "<< widthZ <<" "<< heightY << endl;
+
 	_roomWidthX = widthX;
 	_roomWidthZ = widthZ;
 	_roomHeightY = heightY;
@@ -1074,7 +1094,9 @@ void PickModelHandler::addGround(float widthX, float widthZ, float heightY)
 	_roomTrans->setNodeMask(0x1);  //avoid choosing the Node Mask
 	_root->addChild(_roomTrans);
 
+
 	_btground = new btCollisionObject;
+
 	_btground->setCollisionShape(_cs);
 	_btground->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
 	//btground->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
@@ -2335,7 +2357,12 @@ bool PickModelHandler::chooseOneMatrixTransform(int index, int clientNum)
 	if (index >= 0 && index < _allModelVec.size())
 	{
 		MatrixTransform* model = _allModelVec[index];
-		if (model == NULL) return false;
+		if (model == NULL)
+		{
+			cout << "MODEL is NULL" << endl;
+			return false;
+		}
+		cout << "choose one" << endl;
 		bool res = chooseOneMatrixTransform(model, clientNum);
 
 		return res;
@@ -2407,6 +2434,7 @@ bool PickModelHandler::chooseOneMatrixTransform(MatrixTransform* lastModel, int 
 		return false;
 	}
 
+
 	bool isalreadyChosed = false;
 	
 	bool isChosedByOppositeSide = false;
@@ -2472,17 +2500,25 @@ bool PickModelHandler::chooseOneMatrixTransform(MatrixTransform* lastModel, int 
 	mat *= lastModel->getMatrix();
 
 	ref_ptr<MatrixTransform> tbox = getOrCreateSelectionBox(index, clientNum);
+
 	tbox->setNodeMask(0x1);
-	tbox->setMatrix(mat);\
+	tbox->setMatrix(mat);
+	//tbox->setNodeMask(ChooseBoxMask);
+	//tbox->setMatrix(mat);
+
 	//if (backBox.get() != NULL)
 	//	_root->removeChild(backBox);
 	//backBox = createBackBox();
+
+
+
 
 	showAxis();
 	//Matrix axisMatrix = Matrix::translate(lastModel->getMatrix().getTrans());
 	//axisMatrix *= Matrix::translate(_rightVec * 50 + _forwardVec * 50);
 	//setAxis(axisMatrix);
 	setAxis();
+
 	return true;
 }
 
@@ -2744,12 +2780,16 @@ void PickModelHandler::handleKeyEvent(const osgGA::GUIEventAdapter &ea, osgGA::G
 		case 'v':
 		case 'V':
 			isScaleRoom = true;
+
 			scaleFactor = Vec3d(1.1, 1.1, 1.1);
+
 			break;
 		case 'b':
 		case 'B':
 			isScaleRoom = true;
+
 			scaleFactor = Vec3d(0.9, 0.9, 0.9);
+
 			break;
 		case GUIEventAdapter::KEY_F1:
 			//cout << "1 is press" << endl;
@@ -3077,8 +3117,8 @@ int PickModelHandler::pickAPI(float clickX, float clickY, int clientNum)
 {
 	int res = -1;
 	//cout << clickX << " "<< clickY << endl;
-	float step = 10.f;
-	float step2 = 20.f;
+	float step = PICKRANGE;
+	float step2 = PICKRANGE * 2;
 	float detx[13] = { 0.f, 0.0f, step, 0.0f, -step, step, step, -step, -step, 0.0f, step2, 0.0f, -step2, };
 	float dety[13] = { 0.f, step, 0.0f, -step, 0.0f, step, -step, step, -step, step2, 0.0f, -step2, 0.0f, };
 	for (int i = 0; i < 13; i++)
@@ -3102,23 +3142,51 @@ bool PickModelHandler::chooseAPI(int index, int clientNum)
 	
 	return chooseOneMatrixTransformWithPush(index, clientNum);
 }
+
+void PickModelHandler::addBackground(cv::Mat &imageLeft, cv::Mat &imageRight)
+{
+	//_imageLeft 
+	//_imageRight = mat2image(imageRight);
+
+	//ref_ptr<Image> timg = osgDB::readImageFile("wall2.jpg");
+	//cout <<hex<< timg->getInternalTextureFormat() << endl;
+	//cout << hex << timg->getPixelFormat() << endl;
+	//cout << hex << timg->getDataType() << endl;
+	//cout << hex << timg->getAllocationMode() << endl;
+
+	//_matL = imageLeft;
+	//_matR = imageRight;
+
+	tImageL = mat2image(imageLeft);
+	tImageR = mat2image(imageRight);
+	//writeImageFile(*tImageL, "osgframe.bmp");
+	//writeImageFile(*tImageR, "osgframe2.bmp");
+
+	createBackboard(tImageL.get(), tImageR.get(), BACKGROUNDWIDTH, BACKGROUNDHEIGHT, BACKGROUNDDEEP, BACKGROUNDEYEDIS);
+}
+
 void PickModelHandler::addBackground(string imageLeft, string imageRight)
 {
 	_imageLeft = imageLeft;
-	_imageRight = imageRight;
+	_imageRight = imageRight;	
+
 	tImageL = osgDB::readImageFile(imageLeft);
 	tImageR = osgDB::readImageFile(imageRight);
 	//createBillboardTree(tImage.get(), 800.0);
 	//createBackboard(tImageL.get(), _viewLeft, _rootLeft, 1600.0);
 	//createBackboard(tImageR.get(), _viewRight, _rootRight., 1600.0);
 	createBackboard(tImageL.get(), tImageR.get(), BACKGROUNDWIDTH, BACKGROUNDHEIGHT, BACKGROUNDDEEP, BACKGROUNDEYEDIS);
+
 	//createBackboard(tImageL.get(), tImageR.get());
+
 }
 
 void PickModelHandler::addBackground()
 {
 	createBackboard(tImageL.get(), tImageR.get(), BACKGROUNDWIDTH, BACKGROUNDHEIGHT, BACKGROUNDDEEP, BACKGROUNDEYEDIS);
+
 	//createBackboard(tImageL.get(), tImageR.get());
+
 }
 void PickModelHandler::setBackgroundImg(string imageLeft, string imageRight)
 {
@@ -3128,16 +3196,8 @@ void PickModelHandler::setBackgroundImg(string imageLeft, string imageRight)
 	tImageR = osgDB::readImageFile(imageRight);
 	setBackboardImg(tImageL.get(), tImageR.get());
 }
-void PickModelHandler::addBackground(cv::Mat &imageLeft, cv::Mat &imageRight)
-{
 
-	tImageL = mat2image(imageLeft);
-	tImageR = mat2image(imageRight);
-	//writeImageFile(*tImageL, "osgframe.bmp");
-	//writeImageFile(*tImageR, "osgframe2.bmp");
-	//createBackboard(tImageL.get(), tImageR.get(), BACKGROUNDDEEP);
-	createBackboard(tImageL.get(), tImageR.get(), BACKGROUNDWIDTH, BACKGROUNDHEIGHT, BACKGROUNDDEEP, BACKGROUNDEYEDIS);
-}
+
 
 void PickModelHandler::scaleRoom(double scaleX, double scaleY, double scaleZ)
 {

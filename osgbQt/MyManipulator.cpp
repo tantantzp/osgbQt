@@ -385,30 +385,20 @@ bool  MyManipulator::performCameraTranslate(const double dx, const double dy)
 }
 bool MyManipulator::performCameraZoom(const double zoomFactor)
 {
-	//Vec3f eye;
-	//Vec3f center;
-	//Vec3f up;
-	////_viewLeft->getCamera()->getViewMatrixAsLookAt(eye, center, up);
 
-	//Matrix im = getInverseMatrix();
-	//im.getLookAt(eye, center, up);
-
-	//cout << eye << " " << center << endl;
-	//cout << eye - center << endl;
-
-	//cout <<"_currentZoom"<< _currentZoom << endl;
-	//if (_currentZoom + zoomFactor > _maxZoom || _currentZoom + zoomFactor < (-_maxZoom * 2))
+	//if (_currentZoom + zoomFactor > _maxZoom || _currentZoom + zoomFactor < (-_maxZoom))
 	//{
 	//	cout << "zoom too far!!" << endl;
 	//}
 	//else
 	{
+
 		zoomModel(zoomFactor, true);
 		_currentZoom += zoomFactor;
 		_myHandler->addBackground();
 		_view->requestRedraw();
 		_view->requestContinuousUpdate(false);
-	}
+	}	
 
 	return true;
 }
@@ -456,6 +446,7 @@ bool MyManipulator::handleMousePush(const GUIEventAdapter& ea, GUIActionAdapter&
 
 
 	performMovement(tx, ty, function);
+
 	_manipulator2->performCameraTranslate(-_eyeDistance, 0);
 	_manipulator2->performMovement(tx, ty, function);
 	_manipulator2->performCameraTranslate(_eyeDistance, 0);
@@ -599,9 +590,9 @@ bool MyManipulator::handleMouseWheel(const GUIEventAdapter& ea, GUIActionAdapter
 	case GUIEventAdapter::SCROLL_UP:
 	{
 									   performCameraZoom(_zoomFactor);
-									   _manipulator2->performCameraTranslate(-_eyeDistance, 0);
-									   _manipulator2->performCameraZoom(_zoomFactor);
-									   _manipulator2->performCameraTranslate(_eyeDistance, 0);
+									   //_manipulator2->performCameraTranslate(-_eyeDistance, 0);
+									   //_manipulator2->performCameraZoom(_zoomFactor);
+									   //_manipulator2->performCameraTranslate(_eyeDistance, 0);
 									   return true;
 	}
 
@@ -610,9 +601,9 @@ bool MyManipulator::handleMouseWheel(const GUIEventAdapter& ea, GUIActionAdapter
 	{
 										 // perform zoom
 										 performCameraZoom(-_zoomFactor);
-										 _manipulator2->performCameraTranslate(-_eyeDistance, 0);
-										 _manipulator2->performCameraZoom(-_zoomFactor);
-										 _manipulator2->performCameraTranslate(_eyeDistance, 0);
+										// _manipulator2->performCameraTranslate(-_eyeDistance, 0);
+										// _manipulator2->performCameraZoom(-_zoomFactor);
+										// _manipulator2->performCameraTranslate(_eyeDistance, 0);
 										 return true;
 	}
 

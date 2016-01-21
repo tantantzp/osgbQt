@@ -34,8 +34,10 @@ public:
 	void setOrientation(int orientation);
 	void createBillboardTree(Image* image, float deep = 800.0);
 	//void createBackboard(Image* image, View* view, Group* root, float deep = 1000);
+
 	void createBackboard(Image* image, Image* image2, float width = 720., float height = 1280., float deep = 2200., float eyeDis= 0.);
 	//void PickModelHandler::createBackboard(Image* image, Image* image2, float deep);
+
 	void setBackboardImg(Image* image, Image* image2);
 	
 
@@ -131,14 +133,14 @@ protected:
 	
 	
 		double _lastX, _lastY;
-		//double _groundWidthX, _groundWidthZ, _groundHeightY;
+
+
 		bool _colState;
 		float _transStep;
 		bool _hasGround;
 		//unsigned int _selectNum;
 	
-	
-	
+
 	
 		//orientation and corresponding direction Vec3
 		int _orientation; 
@@ -152,6 +154,8 @@ protected:
 		string _imageRight;
 		ref_ptr<Image> tImageL;
 		ref_ptr<Image> tImageR;
+		cv::Mat _matL;
+		cv::Mat _matR;
 	
 		ref_ptr<Billboard> backBoard;
 		ref_ptr<Geode> geoBackboardLeft;
@@ -173,7 +177,10 @@ protected:
 		float _roomScaleFactor;
 		float _roomDistance;
 		float _roomWidthX, _roomWidthZ, _roomHeightY;
-		//	double _groundWidthX, _groundWidthZ, _groundHeightY;
+
+
+	//	double _groundWidthX, _groundWidthZ, _groundHeightY;
+
 		ref_ptr<Geode> wallBox[6];
 		ref_ptr<MatrixTransform> _roomTrans;
 		btCompoundShape* _cs;

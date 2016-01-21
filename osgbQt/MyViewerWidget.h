@@ -32,7 +32,7 @@ public:
 	//	_viewer.addSlave(cameraClient);
 	//	
 	//}
-
+	void updateBackground(cv::Mat& img1, cv::Mat& img2);
 	void addBackground(string imgpath);
 	void myFrame();
 	osgQt::GraphicsWindowQt* createGraphicsWindow(int x, int y, int w, int h, const std::string& name = "", bool windowDecoration = false);
