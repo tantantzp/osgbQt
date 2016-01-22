@@ -311,52 +311,55 @@ void MyViewerWidget::myFrame()
 	//_viewer.frame();
 
 	bool flag = false;
-	if (_manipulator->_isRotate > 0 )
+	if (_manipulator->_isRotate > 0 || _manipulator->_isRotate2 > 0)
 	{
-		float dx = _manipulator->_myDx;
-		float dy = _manipulator->_myDy;
-		_manipulator->performCameraRotate(dx, dy);
-
+		if (_manipulator->_isRotate > 0)
+		{
+			float dx = _manipulator->_myDx;
+			float dy = _manipulator->_myDy;
+		    _manipulator->performCameraRotate(dx, dy);
+			_manipulator->_isRotate = 0;
+		}
+		if (_manipulator->_isRotate2 > 0)
+		{
+			float dx = _manipulator->_myDx2;
+			float dy = _manipulator->_myDy2;
+		    _manipulator->performCameraRotate(dx, dy);
+			_manipulator->_isRotate2 = 0;
+		}
 		_manipulator->setOrientation();
+
 		_picker->setAxis();
-
-
 		_picker->addBackground();
-		_manipulator->_isRotate = 0;
+
 
 		flag = true;
 	}
-	if (_manipulator->_isTranslate > 0)
+	if (_manipulator->_isTranslate > 0 || _manipulator->_isTranslate2 > 0)
 	{
-		float dx = _manipulator->_myDx;
-		float dy = _manipulator->_myDy;
-		_manipulator->performCameraTranslate(dx, dy);
-
+		if (_manipulator->_isTranslate > 0)
+		{
+			float dx = _manipulator->_myDx;
+			float dy = _manipulator->_myDy;
+			_manipulator->performCameraTranslate(dx, dy);
+			_manipulator->_isTranslate = 0;
+		}
+		if (_manipulator->_isTranslate2 > 0)
+		{
+			float dx = _manipulator->_myDx2;
+			float dy = _manipulator->_myDy2;
+			_manipulator->performCameraTranslate(dx, dy);
+			_manipulator->_isTranslate2 = 0;
+		}
 		_manipulator->setOrientation();
 		_picker->setAxis();
-
-
 		_picker->addBackground();
-		_manipulator->_isTranslate = 0;
+
+
 
 		flag = true;
 	}
 
-	if (_manipulator->_isTranslate > 0)
-	{
-		float dx = _manipulator->_myDx;
-		float dy = _manipulator->_myDy;
-		_manipulator->performCameraTranslate(dx, dy);
-
-		_manipulator->setOrientation();
-		_picker->setAxis();
-
-
-		_picker->addBackground();
-		_manipulator->_isTranslate = 0;
-
-		flag = true;
-	}
 
 	_viewLeft->frame();
 

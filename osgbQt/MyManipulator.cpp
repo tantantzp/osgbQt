@@ -16,6 +16,12 @@ MyManipulator::MyManipulator(osgViewer::View* view, int flags)
 	_zoomFactor = 0.1;
 	_maxZoom = 0.6;
 	_currentZoom = 0;
+
+#ifndef USER2
+	_myClientNum = 0;
+#else
+	_myClientNum = 1;
+#endif
 }
 
 
@@ -31,6 +37,12 @@ inherited(om, copyOp)
 	_zoomFactor = 0.1;
 	_maxZoom = 0.6;
 	_currentZoom = 0;
+
+#ifndef USER2
+	_myClientNum = 0;
+#else
+	_myClientNum = 1;
+#endif
 }
 void MyManipulator::setCameraMatrix()
 {
@@ -217,77 +229,126 @@ void MyManipulator::rotateTrackball(const float px0, const float py0,
 
 
 /** Reset the internal GUIEvent stack.*/
-void MyManipulator::flushMouseEventStack()
+void MyManipulator::flushMouseEventStack(int clientNum)
 {
-	_oldPoint = Vec2d(-10., -10.);
-	_curPoint = Vec2d(-10., -10.);
+	if (clientNum == 0)
+	{
+		_oldPoint = Vec2d(-10., -10.);
+		_curPoint = Vec2d(-10., -10.);
+	}
+
+	if (clientNum == 1)
+	{
+		_oldPoint2 = Vec2d(-10., -10.);
+		_curPoint2 = Vec2d(-10., -10.);
+	}
+
 }
 
 
-bool MyManipulator::performMovement(float tx, float ty, int function)
+bool MyManipulator::performMovement(float tx, float ty, int function, int clientNum)
 {
-	_oldPoint = _curPoint;
-	_curPoint = Vec2d(tx, ty);
-	//cout << "_curPoint " << _curPoint.x() <<" "<<_curPoint.y() << endl;
-	bool ret = false;
-	if (_curPoint.x() < -2. || _curPoint.y() < -2. || _oldPoint.x() < -2. || _oldPoint.y() < -2.
-		|| (function != 1 && function != 2))
-	{
-		ret = false;
-	}
-	else
-	{
-		float dx = _curPoint.x() - _oldPoint.x();
-		float dy = _curPoint.y() - _oldPoint.y();
 
-		if (dx == 0. && dy == 0.)
+	if (clientNum == 0)
+	{
+		_oldPoint = _curPoint;
+		_curPoint = Vec2d(tx, ty);
+		//cout << "_curPoint " << _curPoint.x() <<" "<<_curPoint.y() << endl;
+		bool ret = false;
+		if (_curPoint.x() < -2. || _curPoint.y() < -2. || _oldPoint.x() < -2. || _oldPoint.y() < -2.
+			|| (function != 1 && function != 2))
+		{
 			ret = false;
-		if (function == 1)
-		{
-			//ret = performCameraRotate(dx, dy);
-			_myDx = dx * 3;
-			_myDy = dy * 3;
-
-			if (abs(dx) > abs(dy))
-			{
-				if (dx > 0)
-				    _isRotate = 1;
-				else _isRotate = 2;
-			}
-			else
-			{
-				if (dy > 0)
-					_isRotate = 3;
-				else _isRotate = 4;
-			}
-
-			ret = true;
 		}
-		else if (function == 2)
+		else
 		{
-			//ret = performCameraTranslate(dx, dy);
-			_myDx = dx * 3;
-			_myDy = dy * 3;
+			float dx = _curPoint.x() - _oldPoint.x();
+			float dy = _curPoint.y() - _oldPoint.y();
 
-			_isTranslate = 1;
-			ret = true;
+			if (dx == 0. && dy == 0.)
+				ret = false;
+			if (function == 1)
+			{
+				//ret = performCameraRotate(dx, dy);
+				_myDx = dx * 5;
+				_myDy = dy * 5;
+
+				_isRotate = 1;
+
+				//if (abs(dx) > abs(dy))
+				//{
+				//	if (dx > 0)
+				//		_isRotate = 1;
+				//	else _isRotate = 2;
+				//}
+				//else
+				//{
+				//	if (dy > 0)
+				//		_isRotate = 3;
+				//	else _isRotate = 4;
+				//}
+
+				ret = true;
+			}
+			else if (function == 2)
+			{
+				//ret = performCameraTranslate(dx, dy);
+				_myDx = dx * 5;
+				_myDy = dy * 5;
+
+				_isTranslate = 1;
+				ret = true;
+			}
 		}
+
+		//if (ret)
+		//	_view->requestRedraw();
+		//setOrientation();
+
+		return ret;
 	}
-
-
-	if (ret)
+	else if (clientNum == 1)
 	{
-		//cout << "add back" << endl;
-		//_myHandler->addBackground();
-		_view->requestRedraw();
-		//_myHandler->addBackground("wall3.jpg", "wall2.jpg");
+		_oldPoint2 = _curPoint2;
+		_curPoint2 = Vec2d(tx, ty);
+		//cout << "_curPoint " << _curPoint.x() <<" "<<_curPoint.y() << endl;
+		bool ret = false;
+		if (_curPoint2.x() < -2. || _curPoint2.y() < -2. || _oldPoint2.x() < -2. || _oldPoint2.y() < -2.
+			|| (function != 1 && function != 2))
+		{
+			ret = false;
+		}
+		else
+		{
+			float dx = _curPoint2.x() - _oldPoint2.x();
+			float dy = _curPoint2.y() - _oldPoint2.y();
+
+			if (dx == 0. && dy == 0.)
+				ret = false;
+			if (function == 1)
+			{
+				_myDx2 = dx * 5;
+				_myDy2 = dy * 5;
+				_isRotate2 = 1;
+				ret = true;
+			}
+			else if (function == 2)
+			{
+				_myDx2 = dx * 5;
+				_myDy2 = dy * 5;
+				_isTranslate2 = 1;
+				ret = true;
+			}
+		}
+
+		//if (ret)
+		//	_view->requestRedraw();
+		//setOrientation();
+
+		return ret;
 	}
-
-
-	//_view->requestContinuousUpdate(false);
-	setOrientation();
-
-	return ret;
+	cout << "clientNum is invalid in performMovement!" << endl;
+	return false;
 }
 
 
@@ -417,10 +478,10 @@ bool MyManipulator::handleMouseDrag(const GUIEventAdapter& ea, GUIActionAdapter&
 		function = 2;
 
 
-	performMovement(tx, ty, function);
-	_manipulator2->performCameraTranslate(-_eyeDistance, 0);
-	_manipulator2->performMovement(tx, ty, function);
-	_manipulator2->performCameraTranslate(_eyeDistance, 0);
+	performMovement(tx, ty, function,_myClientNum);
+	//_manipulator2->performCameraTranslate(-_eyeDistance, 0);
+	//_manipulator2->performMovement(tx, ty, function, _myClientNum);
+	//_manipulator2->performCameraTranslate(_eyeDistance, 0);
 	//_myHandler->addBackground("wall1.jpg");
 	//_thrown = false
 
@@ -433,8 +494,8 @@ bool MyManipulator::handleMouseDrag(const GUIEventAdapter& ea, GUIActionAdapter&
 /// Handles GUIEventAdapter::PUSH event.
 bool MyManipulator::handleMousePush(const GUIEventAdapter& ea, GUIActionAdapter& us)
 {
-	flushMouseEventStack();
-	_manipulator2->flushMouseEventStack();
+	flushMouseEventStack(_myClientNum);
+	//_manipulator2->flushMouseEventStack(_myClientNum);
 	float tx = ea.getXnormalized();
 	float ty = ea.getYnormalized();
 	unsigned int buttonMask = ea.getButtonMask();
@@ -445,11 +506,11 @@ bool MyManipulator::handleMousePush(const GUIEventAdapter& ea, GUIActionAdapter&
 		function = 2;
 
 
-	performMovement(tx, ty, function);
+	performMovement(tx, ty, function, _myClientNum);
 
-	_manipulator2->performCameraTranslate(-_eyeDistance, 0);
-	_manipulator2->performMovement(tx, ty, function);
-	_manipulator2->performCameraTranslate(_eyeDistance, 0);
+	//_manipulator2->performCameraTranslate(-_eyeDistance, 0);
+	//_manipulator2->performMovement(tx, ty, function, _myClientNum);
+	//_manipulator2->performCameraTranslate(_eyeDistance, 0);
 	//_thrown = false;
 	return true;
 }
@@ -467,12 +528,12 @@ bool MyManipulator::handleMouseRelease(const GUIEventAdapter& ea, GUIActionAdapt
 	else if (buttonMask == GUIEventAdapter::RIGHT_MOUSE_BUTTON)
 		function = 2;
 
-	performMovement(tx, ty, function);
-	_manipulator2->performCameraTranslate(-_eyeDistance, 0);
-	_manipulator2->performMovement(tx, ty, function);
-	_manipulator2->performCameraTranslate(_eyeDistance, 0);
-	flushMouseEventStack();
-	_manipulator2->flushMouseEventStack();
+	performMovement(tx, ty, function, _myClientNum);
+	//_manipulator2->performCameraTranslate(-_eyeDistance, 0);
+	//_manipulator2->performMovement(tx, ty, function, _myClientNum);
+	//_manipulator2->performCameraTranslate(_eyeDistance, 0);
+	flushMouseEventStack(_myClientNum);
+	//_manipulator2->flushMouseEventStack(_myClientNum);
 	return true;
 }
 
@@ -492,22 +553,22 @@ bool MyManipulator::handleKeyDown(const GUIEventAdapter& ea, GUIActionAdapter& u
 		//	break;
 	case GUIEventAdapter::KEY_Up:
 		performCameraTranslate(0, -0.1);
-		_manipulator2->performCameraTranslate(0, -_eyeDistance);
+		//_manipulator2->performCameraTranslate(0, -_eyeDistance);
 		return true;
 		break;
 	case GUIEventAdapter::KEY_Down:
 		performCameraTranslate(0, 0.1);
-		_manipulator2->performCameraTranslate(0, _eyeDistance);
+		//_manipulator2->performCameraTranslate(0, _eyeDistance);
 		return true;
 		break;
 	case GUIEventAdapter::KEY_Left:
 		performCameraTranslate(0.1, 0);
-		_manipulator2->performCameraTranslate(_eyeDistance, 0);
+		//_manipulator2->performCameraTranslate(_eyeDistance, 0);
 		return true;
 		break;
 	case GUIEventAdapter::KEY_Right:
 		performCameraTranslate(-0.1, 0);
-		_manipulator2->performCameraTranslate(-_eyeDistance, 0);
+		//_manipulator2->performCameraTranslate(-_eyeDistance, 0);
 		return true;
 		break;
 	case 'p':
@@ -589,22 +650,22 @@ bool MyManipulator::handleMouseWheel(const GUIEventAdapter& ea, GUIActionAdapter
 		// mouse scroll up event
 	case GUIEventAdapter::SCROLL_UP:
 	{
-									   performCameraZoom(_zoomFactor);
-									   //_manipulator2->performCameraTranslate(-_eyeDistance, 0);
-									   //_manipulator2->performCameraZoom(_zoomFactor);
-									   //_manipulator2->performCameraTranslate(_eyeDistance, 0);
-									   return true;
+		performCameraZoom(_zoomFactor);
+		//_manipulator2->performCameraTranslate(-_eyeDistance, 0);
+		//_manipulator2->performCameraZoom(_zoomFactor);
+		//_manipulator2->performCameraTranslate(_eyeDistance, 0);
+		return true;
 	}
 
 		// mouse scroll down event
 	case GUIEventAdapter::SCROLL_DOWN:
 	{
-										 // perform zoom
-										 performCameraZoom(-_zoomFactor);
-										// _manipulator2->performCameraTranslate(-_eyeDistance, 0);
-										// _manipulator2->performCameraZoom(-_zoomFactor);
-										// _manipulator2->performCameraTranslate(_eyeDistance, 0);
-										 return true;
+		// perform zoom
+		performCameraZoom(-_zoomFactor);
+	// _manipulator2->performCameraTranslate(-_eyeDistance, 0);
+	// _manipulator2->performCameraZoom(-_zoomFactor);
+	// _manipulator2->performCameraTranslate(_eyeDistance, 0);
+		return true;
 	}
 
 		// unhandled mouse scrolling motion

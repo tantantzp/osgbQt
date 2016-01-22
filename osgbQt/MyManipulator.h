@@ -44,13 +44,12 @@ public:
 	virtual bool handleKeyDown(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us);
 	virtual bool handleKeyUp(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us);
 	virtual bool handleMouseWheel(const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us);
-
-	virtual bool performMovement(float tx, float ty, int function); // 1:rotate camera 2:translate camera 
+	virtual bool performMovement(float tx, float ty, int function, int clientNum); // 1:rotate camera 2:translate camera 
 	bool performCameraRotate(const double dx, const double dy);
 	bool performCameraTranslate(const double dx, const double dy);
 	bool performCameraZoom(const double zoomFactor);
 
-	void flushMouseEventStack();
+	void flushMouseEventStack(int clientNum);
 
 	void doRotate(Quat& rotation, const double yaw, const double pitch, const Vec3d& localUp);
 	void rotateTrackball(const float px0, const float py0, const float px1, const float py1, const float scale);
@@ -77,18 +76,34 @@ public:
 	osgViewer::View* _view;
 	//	osg::ref_ptr< const osgGA::GUIEventAdapter > _ga_t1;
 	//	osg::ref_ptr< const osgGA::GUIEventAdapter > _ga_t0;
-	Vec2d _oldPoint;
-	Vec2d _curPoint;
+
+	MyManipulator* _manipulator2;
+
 	double _zoomFactor;
 	double _currentZoom;
 	double _maxZoom;
 	double _eyeDistance = 0.2;
+
+
+	//performMove
+
+	Vec2d _oldPoint;
+	Vec2d _curPoint;
+	Vec2d _oldPoint2;
+	Vec2d _curPoint2;
+
 	int _isRotate = 0;
+	int _isTranslate = 0;
 	float _myDx = 0.;
 	float _myDy = 0.;
 
-	int _isTranslate = 0;
-	MyManipulator* _manipulator2;
+	int _isRotate2 = 0;
+	int _isTranslate2 = 0;
+	float _myDx2 = 0.;
+	float _myDy2 = 0.;
+
+	int _myClientNum;
+
 };
 
 #endif /* OSGGA_ORBIT_MANIPULATOR */

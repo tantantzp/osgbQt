@@ -88,8 +88,8 @@ using namespace osgGA;
 using namespace osgDB;
 //using namespace cv;
 
-const int MODELSIZEMIN = 15;  //auto scaling when load the obj, if the radius of obj < MODELSIZEMIN, scale to MODELSIZEMIN
-const int MODELSIZEMAX = 40;
+const float MODELSIZEMIN = 15.;  //auto scaling when load the obj, if the radius of obj < MODELSIZEMIN, scale to MODELSIZEMIN
+const float MODELSIZEMAX = 40.;
 
 const float PICKRANGE = 10.;  //pixel
 
@@ -108,7 +108,7 @@ const int CameraMaskRight = 0x13;
 static float BACKGROUNDWIDTH = 720.;
 static float BACKGROUNDHEIGHT = 1280.;
 static float BACKGROUNDDEEP = 2200.;
-static float BACKGROUNDEYEDIS = 10.;
+static float BACKGROUNDEYEDIS = 0.;
 
 
 
@@ -125,7 +125,7 @@ static float BACKGROUNDEYEDIS = 10.;
 
 
 
-#define USER2
+//#define USER2
 
 
 #pragma comment(lib, "osg.lib")

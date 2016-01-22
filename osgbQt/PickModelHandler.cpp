@@ -839,6 +839,24 @@ bool  PickModelHandler::doAddObj(MatrixTransform * trans, bool isDetectCollision
 	this->insertObjPair(trans, btBoxObject);
 
 
+
+	BoundingSphere bb = model->getBound();
+	cout << "bb.radius" << bb.radius() << endl;
+	//if (bb.radius() < 15)
+	if (bb.radius() < MODELSIZEMIN)
+	{
+		cout << "obj too small! scale bigger" << endl;
+		float scaleFactor = MODELSIZEMIN / bb.radius();
+		scaleOneObj(trans, NULL, btBoxObject, Vec3d(scaleFactor, scaleFactor, scaleFactor), false);
+	}
+	if (bb.radius() > MODELSIZEMAX)
+	{
+		cout << "obj too big! scale smaller" << endl;
+		float scaleFactor = MODELSIZEMAX / bb.radius();
+		scaleOneObj(trans, NULL, btBoxObject, Vec3d(scaleFactor, scaleFactor, scaleFactor), false);
+	}
+
+
 	if (isDetectCollision)
 	{
 		bool collisionFlag = true;
@@ -889,21 +907,6 @@ bool  PickModelHandler::doAddObj(MatrixTransform * trans, bool isDetectCollision
 			//_allNum++;
 
 
-			BoundingSphere bb = model->getBound();
-			cout << "bb.radius" << bb.radius() << endl;
-			//if (bb.radius() < 15)
-			if (bb.radius() < MODELSIZEMIN)
-			{
-				cout << "obj too small! scale bigger" << endl;
-				float scaleFactor = 15.0 / bb.radius();
-				scaleOneObj(trans, NULL, btBoxObject, Vec3d(scaleFactor, scaleFactor, scaleFactor));
-			}
-			if (bb.radius() > MODELSIZEMAX)
-			{
-				cout << "obj too big! scale smaller" << endl;
-				float scaleFactor = 50.0 / bb.radius();
-				scaleOneObj(trans, NULL, btBoxObject, Vec3d(scaleFactor, scaleFactor, scaleFactor));
-			}
 
 
 			//cout << "all model num: " << _allNum << endl;
@@ -1356,7 +1359,7 @@ bool PickModelHandler::rotateOneObj(MatrixTransform* model, MatrixTransform* box
 	else return true;
 
 }
-bool PickModelHandler::scaleOneObj(MatrixTransform* model, MatrixTransform* box, btCollisionObject* collisionObj, Vec3d scaleVec)
+bool PickModelHandler::scaleOneObj(MatrixTransform* model, MatrixTransform* box, btCollisionObject* collisionObj, Vec3d scaleVec,bool isDetectCollision)
 {
 	if (model == NULL || collisionObj == NULL ) {
 		return false;
@@ -1393,15 +1396,15 @@ bool PickModelHandler::scaleOneObj(MatrixTransform* model, MatrixTransform* box,
 	cout << "scale" << endl;
 	btVector3 tscaleVec = btScale * scaleFactor;
 
-	if (float(tscaleVec.x()) > 2) {
-		cout << "too big" << endl;
-		return false;
-	}
-	else if (float(tscaleVec.x()) < 0.3) {
-		cout << "too small" << endl;
-		return false;
-	}
-	else 
+	//if (float(tscaleVec.x()) > 2) {
+	//	cout << "too big" << endl;
+	//	return false;
+	//}
+	//else if (float(tscaleVec.x()) < 0.3) {
+	//	cout << "too small" << endl;
+	//	return false;
+	//}
+	//else 
 	{
 		model->setMatrix(matrix);
 		if (box != NULL)
@@ -1410,20 +1413,23 @@ bool PickModelHandler::scaleOneObj(MatrixTransform* model, MatrixTransform* box,
 		collisionObj->setWorldTransform(btTrans);
 		_collisionWorld->updateSingleAabb(collisionObj);
 
-
-		_collisionWorld->performDiscreteCollisionDetection();
-		detectCollision(_colState, _collisionWorld);
-		if (_colState == true)
+		if (isDetectCollision)
 		{
-			model->setMatrix(oriMatrix);
-			if (box != NULL)
-			    box->setMatrix(oriSmatrix);
+			_collisionWorld->performDiscreteCollisionDetection();
+			detectCollision(_colState, _collisionWorld);
+			if (_colState == true)
+			{
+				model->setMatrix(oriMatrix);
+				if (box != NULL)
+					box->setMatrix(oriSmatrix);
 
-			cout << "unscale" << endl;
-			collisionObj->getCollisionShape()->setLocalScaling(oriBtScale);
-			collisionObj->setWorldTransform(oriBtTrans);
-			_collisionWorld->updateSingleAabb(collisionObj);
-			return false;
+				cout << "unscale" << endl;
+				collisionObj->getCollisionShape()->setLocalScaling(oriBtScale);
+				collisionObj->setWorldTransform(oriBtTrans);
+				_collisionWorld->updateSingleAabb(collisionObj);
+				return false;
+			}
+			else return true;
 		}
 		else return true;
 	}
