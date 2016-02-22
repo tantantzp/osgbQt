@@ -424,7 +424,7 @@ void PickModelHandler::createBackboard(Image* image, Image* image2, float width,
 	left.normalize();
 
 	Vec3f boardCenter = eye + direction * deep;
-	Vec3f boxCenter = eye + direction * 500;
+	Vec3f boxCenter = eye + direction * 500 + left * 100;
 
 	if (backBox.get() != NULL)
 		_root->removeChild(backBox);
@@ -806,7 +806,7 @@ void PickModelHandler::popFromHistory()
 	}
 }
 
-bool  PickModelHandler::doAddObj(MatrixTransform * trans, bool isDetectCollision)
+bool  PickModelHandler::doAddObj(MatrixTransform * trans, bool isDetectCollision, bool isAutoScale )
 {
 	cout << "do add obj" << endl;
 
@@ -830,30 +830,29 @@ bool  PickModelHandler::doAddObj(MatrixTransform * trans, bool isDetectCollision
 	//transMatrix.getTrans();
 
 	btBoxObject->setWorldTransform(osgbCollision::asBtTransform(transMatrix));
-	
-	
-
-	
 	_collisionWorld->addCollisionObject(btBoxObject);
 
 	this->insertObjPair(trans, btBoxObject);
 
 
+	if (isAutoScale)
+	{
+		BoundingSphere bb = model->getBound();
+		cout << "bb.radius" << bb.radius() << endl;
+		//if (bb.radius() < 15)
+		if (bb.radius() < MODELSIZEMIN)
+		{
+			cout << "obj too small! scale bigger" << endl;
+			float scaleFactor = MODELSIZEMIN / bb.radius();
+			scaleOneObj(trans, NULL, btBoxObject, Vec3d(scaleFactor, scaleFactor, scaleFactor), false);
+		}
+		if (bb.radius() > MODELSIZEMAX)
+		{
+			cout << "obj too big! scale smaller" << endl;
+			float scaleFactor = MODELSIZEMAX / bb.radius();
+			scaleOneObj(trans, NULL, btBoxObject, Vec3d(scaleFactor, scaleFactor, scaleFactor), false);
+		}
 
-	BoundingSphere bb = model->getBound();
-	cout << "bb.radius" << bb.radius() << endl;
-	//if (bb.radius() < 15)
-	if (bb.radius() < MODELSIZEMIN)
-	{
-		cout << "obj too small! scale bigger" << endl;
-		float scaleFactor = MODELSIZEMIN / bb.radius();
-		scaleOneObj(trans, NULL, btBoxObject, Vec3d(scaleFactor, scaleFactor, scaleFactor), false);
-	}
-	if (bb.radius() > MODELSIZEMAX)
-	{
-		cout << "obj too big! scale smaller" << endl;
-		float scaleFactor = MODELSIZEMAX / bb.radius();
-		scaleOneObj(trans, NULL, btBoxObject, Vec3d(scaleFactor, scaleFactor, scaleFactor), false);
 	}
 
 
@@ -962,7 +961,7 @@ MatrixTransform* PickModelHandler::duplicateOneObj(MatrixTransform * matrixTrans
 	//MatrixTransform* trans = new MatrixTransform(*matrixTrans, CopyOp::SHALLOW_COPY);
 	//MatrixTransform* trans2 = new MatrixTransform();
 	//trans2->addChild(trans);
-	bool flag = doAddObj(trans);
+	bool flag = doAddObj(trans, true, false);
 	//chooseOneMatrixTransform(trans.get());
 	if (flag) return trans;
 	else return NULL;
@@ -2512,10 +2511,9 @@ bool PickModelHandler::chooseOneMatrixTransform(MatrixTransform* lastModel, int 
 	//tbox->setNodeMask(ChooseBoxMask);
 	//tbox->setMatrix(mat);
 
-	//if (backBox.get() != NULL)
-	//	_root->removeChild(backBox);
-	//backBox = createBackBox();
-
+	if (backBox.get() != NULL)
+		_root->removeChild(backBox);
+	backBox = createBackBox();
 
 
 

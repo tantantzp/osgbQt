@@ -363,8 +363,9 @@ void MyManipulator::doRotate(Quat& rotation, const double yaw, const double pitc
 	bool verticalAxisFixed = (localUp != Vec3d(0., 0., 0.));
 
 	// fix current rotation
-	if (verticalAxisFixed)
-		fixVerticalAxis(rotation, localUp, true);
+
+	//if (verticalAxisFixed)
+	//	fixVerticalAxis(rotation, localUp, true);
 
 	// rotations
 	Quat rotateYaw(-yaw, verticalAxisFixed ? localUp : rotation * Vec3d(0., 1., 0.));
@@ -382,19 +383,18 @@ void MyManipulator::doRotate(Quat& rotation, const double yaw, const double pitc
 		newRotation = rotation * rotateYaw * rotatePitch;
 
 		// update vertical axis
-		if (verticalAxisFixed)
-			fixVerticalAxis(newRotation, localUp, false);
+		//if (verticalAxisFixed)
+		//	fixVerticalAxis(newRotation, localUp, false);
 
 		// check for viewer's up vector to be more than 90 degrees from "up" axis
 		Vec3d newCameraUp = newRotation * Vec3d(0., 1., 0.);
-		if (newCameraUp * localUp > 0.)
-		{
 
+		//if (newCameraUp * localUp > 0.)
+		//{
 			// apply new rotation
 			rotation = newRotation;
 			return;
-
-		}
+		//}
 
 		my_dy /= 2.;
 		if (++i == 20)

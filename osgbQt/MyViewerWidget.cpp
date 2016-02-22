@@ -230,9 +230,9 @@ void MyViewerWidget::setCamera()
 	_manipulator = new MyManipulator(_viewLeft);
 
 #ifndef USER2
-	_manipulator->setHomePosition(osg::Vec3(0, 0, 500), osg::Vec3(0, 0, 0), osg::Vec3(0, -1, 0));
-#else
 	_manipulator->setHomePosition(osg::Vec3(0, 0, -500), osg::Vec3(0, 0, 0), osg::Vec3(0, -1, 0));
+#else
+	_manipulator->setHomePosition(osg::Vec3(0, 0, 500), osg::Vec3(0, 0, 0), osg::Vec3(0, -1, 0));
 #endif
 
 	_viewLeft->setCameraManipulator(_manipulator);

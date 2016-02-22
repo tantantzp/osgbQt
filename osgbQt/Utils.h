@@ -117,7 +117,7 @@ static float BACKGROUNDEYEDIS = 0.;
 //#define QUAD_WINDOW_EMBEDDED
 
 
-#define DEF_STEREO
+//#define DEF_STEREO
 
 
 //#define DEF_ISWIN

@@ -79,7 +79,7 @@ public:
 
 protected:
 
-	bool doAddObj(MatrixTransform * matrixTrans, bool isDetectCollision = true);
+	bool doAddObj(MatrixTransform * matrixTrans, bool isDetectCollision = true, bool isAutoScale = true);
 	void handleKeyEvent(const osgGA::GUIEventAdapter &ea, osgGA::GUIActionAdapter &aa);
 	int handlePickEvent(float clickX, float clickY, int clientNum);//const osgGA::GUIEventAdapter &ea, osgGA::GUIActionAdapter &aa);
 	bool chooseOneMatrixTransform(int index, int clientNum);
