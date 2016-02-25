@@ -104,6 +104,9 @@ public:
 
 	int _myClientNum;
 
+	double _currentPanX = 0;
+	double _currentPanY = 0;
+
 };
 
 #endif /* OSGGA_ORBIT_MANIPULATOR */

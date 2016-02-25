@@ -25,7 +25,7 @@
 Node* createLight() //Node* model)
 {
 
-	Vec4 lightpos(0, -1000., 0., 1.);
+	Vec4 lightpos(0, -10000., 0., 1.);
 	LightSource* ls = new LightSource();
 	ls->getLight()->setPosition(lightpos);
 	ls->getLight()->setAmbient(Vec4(0.9, 0.9, 0.9, 1.0));
@@ -154,7 +154,7 @@ QGLWidget()
 #ifdef QUAD_BUFFER_TEST
 			_displaySetting->setStereoMode(DisplaySettings::QUAD_BUFFER);
 #else
-			//_displaySetting->setStereoMode(DisplaySettings::HORIZONTAL_SPLIT); // QUAD_BUFFER,
+			_displaySetting->setStereoMode(DisplaySettings::HORIZONTAL_SPLIT); // QUAD_BUFFER,
 #endif
 			//float eyeSeperation = 0.01f;
 			//_displaySetting->setEyeSeparation(eyeSeperation);

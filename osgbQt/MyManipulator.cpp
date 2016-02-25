@@ -425,8 +425,11 @@ void MyManipulator::rotateWithFixedVertical(const float dx, const float dy, cons
 bool  MyManipulator::performCameraRotate(const double dx, const double dy)
 {
 	// rotate camera
-
+	setCenter(Vec3d(0, 0, 0));
 	rotateWithFixedVertical(dx, dy, Vec3f(0, -1, 0));
+//	panModel(0., 0., _currentZoom);
+	panModel(_currentPanX, _currentPanY, _currentZoom);
+	//panModel(curCenter.x(), curCenter.y(), curCenter.z());
 	//if (dx > 0.)
 	//    rotateWithFixedVertical(0.05, 0., Vec3f(0, -1, 0));
 	//else
@@ -442,6 +445,8 @@ bool  MyManipulator::performCameraTranslate(const double dx, const double dy)
 	//float scale = -0.3f * _distance * getThrowScale(eventTimeDelta);
 	//panModel(dx*scale, dy*scale);
 	panModel(-dx * 100, -dy * 100);
+	_currentPanX += -dx * 100;
+	_currentPanY += -dy * 100;
 	return true;
 }
 bool MyManipulator::performCameraZoom(const double zoomFactor)
@@ -453,9 +458,9 @@ bool MyManipulator::performCameraZoom(const double zoomFactor)
 	//}
 	//else
 	{
-
-		zoomModel(zoomFactor, true);
-		_currentZoom += zoomFactor;
+		//zoomModel(zoomFactor, true);
+		panModel(0, 0, zoomFactor * 500);
+		_currentZoom += zoomFactor * 500;
 		_myHandler->addBackground();
 		_view->requestRedraw();
 		_view->requestContinuousUpdate(false);
