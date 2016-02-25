@@ -154,7 +154,7 @@ QGLWidget()
 #ifdef QUAD_BUFFER_TEST
 			_displaySetting->setStereoMode(DisplaySettings::QUAD_BUFFER);
 #else
-			_displaySetting->setStereoMode(DisplaySettings::HORIZONTAL_SPLIT); // QUAD_BUFFER,
+			//_displaySetting->setStereoMode(DisplaySettings::HORIZONTAL_SPLIT); // QUAD_BUFFER,
 #endif
 			//float eyeSeperation = 0.01f;
 			//_displaySetting->setEyeSeparation(eyeSeperation);

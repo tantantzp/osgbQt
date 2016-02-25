@@ -1093,13 +1093,11 @@ bool  PickModelHandler::doAddObj(MatrixTransform * trans, bool isDetectCollision
 }
 
 bool PickModelHandler::addOneObj(string objPath, Vec3d initPos, int clientNum){
-	//ref_ptr<Node> model1 = osgDB::readNodeFile("D:/ProgramLib/objs/chair/chair_3.skp/chair_3.obj");  //;cow.osg");
 	ref_ptr<Node> model = osgDB::readNodeFile(objPath);
 	if (model.get() == NULL) {
 		cout << "read node file:" << objPath << "  failed" << endl;
 		return false;
 	}
-
 	Matrix transMatrix = osg::Matrix::translate(initPos.x(), initPos.y(), initPos.z());
 	ref_ptr<MatrixTransform> trans = new MatrixTransform(transMatrix);
 	trans->addChild(model.get());
@@ -1109,8 +1107,11 @@ bool PickModelHandler::addOneObj(string objPath, Vec3d initPos, int clientNum){
 	if (res)
 	{
 		int index = _allModelVec.size() - 1;
-
 		chooseOneMatrixTransform(index, clientNum);
+	}
+	else
+	{
+		popFromHistory();
 	}
 	return res;
 }
@@ -3182,6 +3183,10 @@ void  PickModelHandler::duplicateAPI(int clientNum)
 			MatrixTransform* tmatrix = duplicateOneObj(_allModelVec[i]);
 			if (tmatrix != NULL) {
 				chooseOneMatrixTransform(tmatrix, clientNum);
+			}
+			else
+			{
+				popFromHistory();
 			}
 			break;
 		}
