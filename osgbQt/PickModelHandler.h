@@ -51,7 +51,8 @@ public:
 public:
 	void addGround(float widthX, float widthZ, float heightY);
 	bool addOneObj(string objPath, Vec3d initPos, int clientNum = 0);
-	void PickModelHandler::updateCameraVec();
+	bool addOneObjOnGround(string objPath, int clientNum = 0);
+	void updateCameraVec();
 	//API
 	void translateAPI(float dright, float dup, float dforward, int clientNum);
 	void rotateAPI(float rotationAngle, int clientNum);
@@ -79,7 +80,7 @@ public:
 
 protected:
 
-	bool doAddObj(MatrixTransform * matrixTrans, bool isDetectCollision = true, bool isAutoScale = true);
+	bool doAddObj(MatrixTransform * matrixTrans, bool isDetectCollision = true, bool isAutoScale = true, bool isOnGround = false);
 	void handleKeyEvent(const osgGA::GUIEventAdapter &ea, osgGA::GUIActionAdapter &aa);
 	int handlePickEvent(float clickX, float clickY, int clientNum);//const osgGA::GUIEventAdapter &ea, osgGA::GUIActionAdapter &aa);
 	bool chooseOneMatrixTransform(int index, int clientNum);

@@ -101,26 +101,28 @@ QGLWidget()
 
 		for (int i = 0; i < 2; i++) {
 			string strobj1 = "D:/ProgramLib/objs/chair/chair_17.skp/chair_17.obj";
-			Vec3d pos1(-40., 70., 0.);
-			_picker->addOneObj(strobj1, pos1, 1);
+			//Vec3d pos1(-40., 120., 0.);
+			//_picker->addOneObj(strobj1, pos1, 1);
+			_picker->addOneObjOnGround(strobj1, 1);
 		}
 		for (int i = 0; i < 2; i++) {
 			string strobj2 = "D:/ProgramLib/objs/chair/chair_8.skp/chair_8.obj";
-			Vec3d pos2(40., 70., 0.);
-			_picker->addOneObj(strobj2, pos2);
+			//Vec3d pos2(40., 120., 0.);
+			//_picker->addOneObj(strobj2, pos2);
+			_picker->addOneObjOnGround(strobj2);
 		}
 
 
 		string strobj = "D:/ProgramLib/objs/desk/bedroom_143/11.obj";
-		Vec3d pos(100., 70., 80.);
-		_picker->addOneObj(strobj, pos);
-
+		//Vec3d pos(100., 120., 80.);
+		//_picker->addOneObj(strobj, pos);
+		_picker->addOneObjOnGround(strobj, 0);
 
 
 		strobj = "D:/ProgramLib/objs/table/dining_table_55.skp/dining_table_55.obj";
-		Vec3d pos1(0., 70., 80.);
-		_picker->addOneObj(strobj, pos);
-
+		//Vec3d pos1(0., 120., 80.);
+		//_picker->addOneObj(strobj, pos);
+		_picker->addOneObjOnGround(strobj, 0);
 
 
 		//*set scenedata

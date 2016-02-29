@@ -422,11 +422,7 @@ void PickModelHandler::createBackboard(Image* image, Image* image2, float width,
 	left.normalize();
 	Vec3f boardCenter = eye + direction * deep;
 
-#ifdef DEF_STEREO
-	//float zoom = tmp->_currentZoom;
-	//float factor = 50.;
-	//boardCenter = boardCenter - left * zoom * factor;
-#endif
+
 
 	Vec3f boxCenter = eye + direction * 700 + up * 200;
 	if (backBox.get() != NULL)
@@ -496,16 +492,7 @@ void PickModelHandler::createBackboard(Image* image, Image* image2, float width,
 	//left = direction ^ up;
 	//left.normalize();
 	//boardCenter = eye + direction * deep;
-#ifdef DEF_STEREO
-	//boardCenter = boardCenter + left * zoom * factor * 2;
 
-	//Vec3f tmpVec = left * zoom * factor * 2;
-	//point1 += tmpVec;
-	//point2 += tmpVec;
-	//point3 += tmpVec;
-	//point4 += tmpVec;
-
-#endif
 
 	//point1 = boardCenter + up * tHeigth + left * tWidth - left * tEyeDis;
 	//point2 = boardCenter + up * tHeigth - left * tWidth - left * tEyeDis;
@@ -553,158 +540,6 @@ void PickModelHandler::createBackboard(Image* image, Image* image2, float width,
 	_rootLeft->addChild(geoBackboardRight.get());
 }
 
-
-//void PickModelHandler::createBackboard(Image* image, Image* image2, float width, float height, float deep, float eyeDis)
-//{
-//	float tDeep = deep ;
-//	float tHeigth = width;
-//	float tWidth = height;
-//	float tEyeDis = eyeDis;
-//	Vec3f eye;
-//	Vec3f center;
-//	Vec3f up;
-//	
-//	//cameraMatrix.getLookAt(eye, center, up);
-//	//_viewLeft->getCameraManipulator()->getMatrix().getLookAt(eye, center, up);
-//
-//	MyManipulator* tmp = (MyManipulator*)_viewLeft->getCameraManipulator();
-//
-//	Matrix im = tmp->getInverseMatrix();
-//	im.getLookAt(eye, center, up);
-//	//_viewLeft->getCamera()->getViewMatrixAsLookAt(eye, center, up);
-//
-//
-//	Vec3f direction = center - eye;
-//	direction.normalize();
-//	//Vec3f direction(0.0, 0.0, -1.0);
-//	up.normalize();
-//
-//
-//	//cout << eye << " " << center << " " << up << endl;
-//
-//	Vec3f left = direction ^ up;
-//	left.normalize();
-//
-//	Vec3f boardCenter = eye + direction * deep;
-//	Vec3f boxCenter = eye + direction * 500 +left * 100;
-//
-//	//if (backBox.get() != NULL)
-//	//	_root->removeChild(backBox);
-//	//backBox = createBackBox(boxCenter);
-//
-//	Vec3f point1 = boardCenter + up * tHeigth + left * tWidth;
-//	Vec3f point2 = boardCenter + up * tHeigth - left * tWidth;
-//	Vec3f point3 = boardCenter - up * tHeigth - left * tWidth;
-//	Vec3f point4 = boardCenter - up * tHeigth + left * tWidth;
-//	ref_ptr<Geometry> geometry = new Geometry();
-//
-//
-//	//cout <<"boardCenter"<< boardCenter << endl;
-//
-//	ref_ptr<Vec3Array> v = new Vec3Array();
-//	v->push_back(point1);
-//	v->push_back(point2);
-//	v->push_back(point3);
-//	v->push_back(point4);
-//
-//	geometry->setVertexArray(v.get());
-//	//set texture coordinate
-//	ref_ptr<Vec2Array> vt = new Vec2Array();
-//	vt->push_back(Vec2(0.0, 0.0));
-//	vt->push_back(Vec2(1.0, 0.0));
-//	vt->push_back(Vec2(1.0, 1.0));
-//	vt->push_back(Vec2(0.0, 1.0));
-//
-//	geometry->setTexCoordArray(0, vt.get());
-//
-//	//draw rectangle
-//	geometry->addPrimitiveSet(new DrawArrays(PrimitiveSet::QUADS, 0, 4));
-//
-//
-//	if (image)
-//	{
-//		ref_ptr<Texture2D> texture = new Texture2D();
-//		texture->setWrap(Texture2D::WRAP_S, Texture2D::REPEAT);
-//		texture->setWrap(Texture2D::WRAP_T, Texture2D::REPEAT);
-//		texture->setImage(image);
-//
-//		ref_ptr<StateSet> stateset = new osg::StateSet();
-//		stateset->setTextureAttributeAndModes(0, texture, StateAttribute::ON);
-//		//stateset->setMode(GL_BLEND, StateAttribute::OFF);
-//		stateset->setMode(GL_LIGHTING, StateAttribute::OFF);
-//
-//		geometry->setStateSet(stateset.get());
-//	}
-//
-//	if (geoBackboardLeft.get() != NULL)
-//	{
-//		
-//		_rootLeft->removeChild(geoBackboardLeft.get());
-//	}
-//	geoBackboardLeft = new Geode();
-//	geoBackboardLeft->addDrawable(geometry.get());
-//	//geoBackboardLeft->setNodeMask(0x1);
-//	geoBackboardLeft->setNodeMask(NodeMaskLeft);
-//
-//	_rootLeft->addChild(geoBackboardLeft.get());
-//
-//	//_viewRight->getCamera()->getViewMatrixAsLookAt(eye, center, up);
-//	//direction = center - eye;
-//	//direction.normalize();
-//	//up.normalize();
-//	//left = direction ^ up;
-//	//left.normalize();
-//    //boardCenter = eye + direction * deep;
-//	point1 = boardCenter + up * tHeigth + left * tWidth - left * tEyeDis;
-//	point2 = boardCenter + up * tHeigth - left * tWidth - left * tEyeDis;
-//	point3 = boardCenter - up * tHeigth - left * tWidth - left * tEyeDis;
-//	point4 = boardCenter - up * tHeigth + left * tWidth - left * tEyeDis;
-//
-//
-//
-//	point1 = boardCenter + up * tHeigth + left * tWidth - left * tEyeDis;
-//	point2 = boardCenter + up * tHeigth - left * tWidth - left * tEyeDis;
-//	point3 = boardCenter - up * tHeigth - left * tWidth - left * tEyeDis;
-//	point4 = boardCenter - up * tHeigth + left * tWidth - left * tEyeDis;
-//
-//
-//	ref_ptr<Geometry> geometry2 = new Geometry();
-//
-//	ref_ptr<Vec3Array> v2 = new Vec3Array();
-//	v2->push_back(point1);
-//	v2->push_back(point2);
-//	v2->push_back(point3);
-//	v2->push_back(point4);
-//
-//	geometry2->setVertexArray(v2.get());
-//	geometry2->setTexCoordArray(0, vt.get());
-//
-//	//draw rectangle
-//	geometry2->addPrimitiveSet(new DrawArrays(PrimitiveSet::QUADS, 0, 4));
-//	if (image2)
-//	{
-//		ref_ptr<Texture2D> texture = new Texture2D();
-//		texture->setWrap(Texture2D::WRAP_S, Texture2D::REPEAT);
-//		texture->setWrap(Texture2D::WRAP_T, Texture2D::REPEAT);
-//		texture->setImage(image2);
-//
-//		ref_ptr<StateSet> stateset = new osg::StateSet();
-//		stateset->setTextureAttributeAndModes(0, texture, StateAttribute::ON);
-//		//stateset->setMode(GL_BLEND, StateAttribute::OFF);
-//		stateset->setMode(GL_LIGHTING, StateAttribute::OFF);
-//
-//		geometry2->setStateSet(stateset.get());
-//	}
-//	if (geoBackboardRight.get() != NULL)
-//	{
-//		//root->removeChild(geoBackboard.get());
-//		_rootLeft->removeChild(geoBackboardRight.get());
-//	}
-//	geoBackboardRight = new Geode();
-//	geoBackboardRight->addDrawable(geometry2.get());
-//	geoBackboardRight->setNodeMask(NodeMaskRight);
-//	_rootLeft->addChild(geoBackboardRight.get());
-//}
 
 void PickModelHandler::createBillboardTree(Image* image, float deep)
 {
@@ -968,7 +803,7 @@ void PickModelHandler::popFromHistory()
 	}
 }
 
-bool  PickModelHandler::doAddObj(MatrixTransform * trans, bool isDetectCollision, bool isAutoScale )
+bool  PickModelHandler::doAddObj(MatrixTransform * trans, bool isDetectCollision, bool isAutoScale, bool isOnGrond)
 {
 	cout << "do add obj" << endl;
 
@@ -1068,11 +903,19 @@ bool  PickModelHandler::doAddObj(MatrixTransform * trans, bool isDetectCollision
 
 			//_allNum++;
 
-
-
-
 			//cout << "all model num: " << _allNum << endl;
 			cout << "all model vec size:" << _allModelVec.size() << " " << _allCollisionObjVec.size() << endl;
+			if (isOnGrond)
+			{
+				Vec3d transVec = _downVec * 5;
+				int k = 0;
+				while (translateOneObj(trans, NULL, btBoxObject, transVec))
+				{
+					k++;
+					if (k > 20) break;
+				}
+			}
+
 			return true;
 		}
 	}
@@ -1082,7 +925,16 @@ bool  PickModelHandler::doAddObj(MatrixTransform * trans, bool isDetectCollision
 		_allCollisionObjVec.push_back(btBoxObject);
 		//_allNum++;
 
-
+		if (isOnGrond)
+		{
+			Vec3d transVec = _downVec * 5;
+			int k = 0;
+			while (translateOneObj(trans, NULL, btBoxObject, transVec))
+			{
+				k++;
+				if (k > 20) break;
+			}
+		}
 
 		//cout << "all model num: " << _allNum << endl;
 		cout << "all model vec size:" << _allModelVec.size() << " " << _allCollisionObjVec.size() << endl;
@@ -1091,6 +943,7 @@ bool  PickModelHandler::doAddObj(MatrixTransform * trans, bool isDetectCollision
 
 
 }
+
 
 bool PickModelHandler::addOneObj(string objPath, Vec3d initPos, int clientNum){
 	ref_ptr<Node> model = osgDB::readNodeFile(objPath);
@@ -1115,6 +968,33 @@ bool PickModelHandler::addOneObj(string objPath, Vec3d initPos, int clientNum){
 	}
 	return res;
 }
+
+bool PickModelHandler::addOneObjOnGround(string objPath, int clientNum){
+
+	ref_ptr<Node> model = osgDB::readNodeFile(objPath);
+	if (model.get() == NULL) {
+		cout << "read node file:" << objPath << "  failed" << endl;
+		return false;
+	}
+	Matrix transMatrix = osg::Matrix::translate(0.,  _roomHeightY - 30., 0.);
+	ref_ptr<MatrixTransform> trans = new MatrixTransform(transMatrix);
+	trans->addChild(model.get());
+	trans->setNodeMask(CastsShadowTraversalMask);
+
+	pushToHistory();
+	bool res = doAddObj(trans.get(), true, true, true);
+	if (res)
+	{
+		int index = _allModelVec.size() - 1;
+		chooseOneMatrixTransform(index, clientNum);
+	}
+	else
+	{
+		popFromHistory();
+	}
+	return res;
+}
+
 
 MatrixTransform* PickModelHandler::duplicateOneObj(MatrixTransform * matrixTrans)
 {
@@ -1145,10 +1025,6 @@ void PickModelHandler::addGround(float widthX, float widthZ, float heightY)
 		//return;
 	}
 	/* BEGIN: Create environment boxes */
-
-	//_groundWidthX = widthX;
-	//_groundWidthZ = widthZ;
-	//_groundHeightY = heightY;
 
 	cout <<"roomSize"<< widthX <<" "<< widthZ <<" "<< heightY << endl;
 
