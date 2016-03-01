@@ -248,7 +248,6 @@ void MyManipulator::flushMouseEventStack(int clientNum)
 
 bool MyManipulator::performMovement(float tx, float ty, int function, int clientNum)
 {
-
 	if (clientNum == 0)
 	{
 		_oldPoint = _curPoint;
@@ -269,35 +268,22 @@ bool MyManipulator::performMovement(float tx, float ty, int function, int client
 				ret = false;
 			if (function == 1)
 			{
-				//ret = performCameraRotate(dx, dy);
-				_myDx = dx * 5;
-				_myDy = dy * 5;
+				_myDx += dx ;
+				_myDy += dy ;
 
 				_isRotate = 1;
-
-				//if (abs(dx) > abs(dy))
-				//{
-				//	if (dx > 0)
-				//		_isRotate = 1;
-				//	else _isRotate = 2;
-				//}
-				//else
-				//{
-				//	if (dy > 0)
-				//		_isRotate = 3;
-				//	else _isRotate = 4;
-				//}
-
 				ret = true;
+				//ret = performCameraRotate(_myDx, _myDy);
 			}
 			else if (function == 2)
 			{
-				//ret = performCameraTranslate(dx, dy);
-				_myDx = dx * 5;
-				_myDy = dy * 5;
+
+				_myDx += dx ;
+				_myDy += dy ;
 
 				_isTranslate = 1;
 				ret = true;
+				//ret = performCameraTranslate(_myDx, _myDy);
 			}
 		}
 
@@ -327,17 +313,19 @@ bool MyManipulator::performMovement(float tx, float ty, int function, int client
 				ret = false;
 			if (function == 1)
 			{
-				_myDx2 = dx * 5;
-				_myDy2 = dy * 5;
+				_myDx2 += dx ;
+				_myDy2 += dy ;
 				_isRotate2 = 1;
 				ret = true;
+				//ret = performCameraRotate(_myDx, _myDy);
 			}
 			else if (function == 2)
 			{
-				_myDx2 = dx * 5;
-				_myDy2 = dy * 5;
+				_myDx2 += dx ;
+				_myDy2 += dy ;
 				_isTranslate2 = 1;
 				ret = true;
+				//ret = performCameraTranslate(_myDx, _myDy);
 			}
 		}
 
@@ -372,7 +360,8 @@ void MyManipulator::doRotate(Quat& rotation, const double yaw, const double pitc
 	Quat rotatePitch;
 	Quat newRotation;
 	Vec3d cameraRight(rotation * Vec3d(1., 0., 0.));
-
+	//cout << "rotateYaw:" << rotateYaw << endl;
+	//cout << "cameraRight:"<< cameraRight << endl;
 	double my_dy = pitch;
 	int i = 0;
 
@@ -413,11 +402,17 @@ void MyManipulator::rotateWithFixedVertical(const float dx, const float dy, cons
 	if (abs(dx) > abs(dy)) {
 		//rotateYawPitch(_rotation, dx, 0, up);
 		doRotate(_rotation, dx, 0, up);
+		_curdx += dx;
+		//_curdy += dy;
 	}
 	else
 	{
 		doRotate(_rotation, 0, dy, up);
+		//_curdx += dx;
+		_curdy += dy;
 	}
+	cout << "_curdx:" << _curdx << endl;
+	cout << "_curdy:" << _curdy << endl;
 }
 
 
@@ -425,10 +420,14 @@ void MyManipulator::rotateWithFixedVertical(const float dx, const float dy, cons
 bool  MyManipulator::performCameraRotate(const double dx, const double dy)
 {
 	// rotate camera
-	setCenter(Vec3d(0, 0, 0));
+	//setCenter(Vec3d(0, 0, 0));
 	rotateWithFixedVertical(dx, dy, Vec3f(0, -1, 0));
+
+
+
+
 //	panModel(0., 0., _currentZoom);
-	panModel(_currentPanX, _currentPanY, _currentZoom);
+	//panModel(_currentPanX, _currentPanY, _currentZoom);
 	//panModel(curCenter.x(), curCenter.y(), curCenter.z());
 	//if (dx > 0.)
 	//    rotateWithFixedVertical(0.05, 0., Vec3f(0, -1, 0));
@@ -437,7 +436,29 @@ bool  MyManipulator::performCameraRotate(const double dx, const double dy)
 	//_myHandler->addBackground("wall3.jpg", "wall3.jpg");
 	return true;
 }
+// doc in parent
+bool  MyManipulator::performCameraRotateBack()
+{
+	// rotate camera
+	//setCenter(Vec3d(0, 0, 0));
+	doRotate(_rotation, -_curdx, 0, Vec3f(0, -1, 0));
+	doRotate(_rotation, 0,-_curdy, Vec3f(0, -1, 0));
+	_curdx = 0;
+	_curdy = 0;
+	cout << "_curdx:" << _curdx << endl;
+	cout << "_curdy:" << _curdy << endl;
+	setOrientation();
 
+	//	panModel(0., 0., _currentZoom);
+	//panModel(_currentPanX, _currentPanY, _currentZoom);
+	//panModel(curCenter.x(), curCenter.y(), curCenter.z());
+	//if (dx > 0.)
+	//    rotateWithFixedVertical(0.05, 0., Vec3f(0, -1, 0));
+	//else
+	//	rotateWithFixedVertical(-0.05, 0., Vec3f(0, -1, 0));
+	//_myHandler->addBackground("wall3.jpg", "wall3.jpg");
+	return true;
+}
 
 // doc in parent
 bool  MyManipulator::performCameraTranslate(const double dx, const double dy)
@@ -458,8 +479,8 @@ bool MyManipulator::performCameraZoom(const double zoomFactor)
 	//}
 	//else
 	{
-		//zoomModel(zoomFactor, true);
-		panModel(0, 0, zoomFactor * 500);
+		zoomModel(zoomFactor, true);
+		//panModel(0, 0, zoomFactor * 500);
 		_currentZoom += zoomFactor * 500;
 		_myHandler->addBackground();
 		_view->requestRedraw();
@@ -579,7 +600,8 @@ bool MyManipulator::handleKeyDown(const GUIEventAdapter& ea, GUIActionAdapter& u
 	case 'p':
 	case 'P':
 		cout << "P::" << endl;
-
+		cout << "rotate back" << endl;
+		performCameraRotateBack();
 		return true;
 		break;
 

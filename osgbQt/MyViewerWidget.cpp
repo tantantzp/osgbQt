@@ -319,6 +319,8 @@ void MyViewerWidget::myFrame()
 		{
 			float dx = _manipulator->_myDx;
 			float dy = _manipulator->_myDy;
+			_manipulator->_myDx = 0.;
+			_manipulator->_myDy = 0.;
 		    _manipulator->performCameraRotate(dx, dy);
 			_manipulator->_isRotate = 0;
 		}
@@ -326,6 +328,8 @@ void MyViewerWidget::myFrame()
 		{
 			float dx = _manipulator->_myDx2;
 			float dy = _manipulator->_myDy2;
+			_manipulator->_myDx2 = 0.;
+			_manipulator->_myDy2 = 0.;
 		    _manipulator->performCameraRotate(dx, dy);
 			_manipulator->_isRotate2 = 0;
 		}
@@ -343,6 +347,8 @@ void MyViewerWidget::myFrame()
 		{
 			float dx = _manipulator->_myDx;
 			float dy = _manipulator->_myDy;
+			_manipulator->_myDx = 0.;
+			_manipulator->_myDy = 0.;
 			_manipulator->performCameraTranslate(dx, dy);
 			_manipulator->_isTranslate = 0;
 		}
@@ -350,6 +356,8 @@ void MyViewerWidget::myFrame()
 		{
 			float dx = _manipulator->_myDx2;
 			float dy = _manipulator->_myDy2;
+			_manipulator->_myDx2 = 0.;
+			_manipulator->_myDy2 = 0.;
 			_manipulator->performCameraTranslate(dx, dy);
 			_manipulator->_isTranslate2 = 0;
 		}

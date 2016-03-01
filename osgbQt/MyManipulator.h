@@ -48,6 +48,7 @@ public:
 	bool performCameraRotate(const double dx, const double dy);
 	bool performCameraTranslate(const double dx, const double dy);
 	bool performCameraZoom(const double zoomFactor);
+	bool  MyManipulator::performCameraRotateBack();
 
 	void flushMouseEventStack(int clientNum);
 
@@ -106,6 +107,9 @@ public:
 
 	double _currentPanX = 0;
 	double _currentPanY = 0;
+
+	double _curdx = 0.;
+	double _curdy = 0.;
 
 };
 
